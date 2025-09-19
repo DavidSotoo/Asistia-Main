@@ -1,0 +1,12 @@
+{
+  "name": "backend-asistencia",
+  "version": "1.0.0",
+  "description": "Backend simple de asistencia con Node.js y Express",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "ALU123",
+    "nombre": "María",
+    "apellido": "García",
+    "estado": "Ausente"
+  },
+  {
+    "id": "ALU456",
+    "nombre": "Carlos",
+    "apellido": "Pérez",
+    "estado": "Ausente"
+  },
+  {
+    "id": "ALU789",
+    "nombre": "Lucía",
+    "apellido": "Rodríguez",
+    "estado": "Ausente"
+  }
+]
