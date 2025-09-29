@@ -16,7 +16,25 @@ app.get('/', (req, res) => {
 });
 
 // Iniciar servidor
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🌐 Frontend servido en http://localhost:${PORT}`);
   console.log(`📱 Abre tu navegador y ve a: http://localhost:${PORT}`);
 });
+
+// Manejo de cierre graceful
+process.on('SIGTERM', () => {
+  console.log('SIGTERM recibido. Cerrando servidor frontend...');
+  server.close(() => {
+    console.log('Servidor frontend cerrado correctamente');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT recibido. Cerrando servidor frontend...');
+  server.close(() => {
+    console.log('Servidor frontend cerrado correctamente');
+    process.exit(0);
+  });
+});
+
