@@ -1,106 +1,67 @@
 // server.js
-// Backend simple para control de asistencia con Node.js + Express
+// Backend refactorizado para control de asistencia con Node.js + Express
 
-const express = require("express");
-const fs = require("fs");
-const path = require("path");
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+
+// Importar rutas
+const attendanceRoutes = require('./routes/attendance');
+const authRoutes = require('./routes/auth');
+
+// Importar middleware
+const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 const app = express();
-const PORT = 3000;
-const DB_PATH = path.join(__dirname, "database.json");
+const PORT = process.env.PORT || 3000;
+
+// Middleware de seguridad
+app.use(helmet());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'http://127.0.0.1:3001', 'file://'],
+  credentials: true
+}));
+
+// Middleware de logging
+app.use(morgan('combined'));
 
 // Middleware para parsear JSON
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
-// Endpoint principal: registrar asistencia
-app.post("/api/asistencia", (req, res) => {
-  const { id } = req.body;
-
-  if (!id) {
-    return res.status(400).json({
-      ok: false,
-      mensaje: "El cuerpo de la solicitud debe incluir un id",
-    });
-  }
-
-  fs.readFile(DB_PATH, "utf8", (err, data) => {
-    if (err) {
-      console.error("Error leyendo la base de datos:", err);
-      return res.status(500).json({
-        ok: false,
-        mensaje: "Error interno al leer la base de datos",
-      });
-    }
-
-    let estudiantes;
-    try {
-      estudiantes = JSON.parse(data);
-    } catch (parseErr) {
-      console.error("Error parseando la base de datos:", parseErr);
-      return res.status(500).json({
-        ok: false,
-        mensaje: "Error interno al procesar la base de datos",
-      });
-    }
-
-    const alumno = estudiantes.find((e) => e.id === id);
-
-    if (!alumno) {
-      return res.json({
-        ok: false,
-        alumno: { nombre: "Error", estado: "No registrado" },
-      });
-    }
-
-    if (alumno.estado !== "Presente") {
-      alumno.estado = "Presente";
-      fs.writeFile(DB_PATH, JSON.stringify(estudiantes, null, 2), (err) => {
-        if (err) {
-          console.error("Error escribiendo en la base de datos:", err);
-          return res.status(500).json({
-            ok: false,
-            mensaje: "Error interno al guardar asistencia",
-          });
-        }
-        return res.json({ ok: true, alumno });
-      });
-    } else {
-      return res.json({
-        ok: true,
-        alumno,
-        mensaje: "Alumno ya estaba marcado como presente",
-      });
-    }
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
   });
 });
 
-// 🆕 Endpoint extra: obtener listado completo
-app.get("/api/listado", (req, res) => {
-  fs.readFile(DB_PATH, "utf8", (err, data) => {
-    if (err) {
-      console.error("Error leyendo la base de datos:", err);
-      return res.status(500).json({
-        ok: false,
-        mensaje: "Error interno al leer la base de datos",
-      });
-    }
+// Rutas de la API
+app.use('/api', attendanceRoutes);
+app.use('/api/auth', authRoutes);
 
-    let estudiantes;
-    try {
-      estudiantes = JSON.parse(data);
-    } catch (parseErr) {
-      console.error("Error parseando la base de datos:", parseErr);
-      return res.status(500).json({
-        ok: false,
-        mensaje: "Error interno al procesar la base de datos",
-      });
-    }
-
-    return res.json({ ok: true, alumnos: estudiantes });
-  });
-});
+// Middleware de manejo de errores
+app.use(notFound);
+app.use(errorHandler);
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`Servidor de asistencia escuchando en http://localhost:${PORT}`);
+  console.log(`🚀 Servidor de asistencia escuchando en http://localhost:${PORT}`);
+  console.log(`📊 Health check disponible en http://localhost:${PORT}/health`);
+  console.log(`🔐 Entorno: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// Manejo de cierre graceful
+process.on('SIGTERM', () => {
+  console.log('SIGTERM recibido. Cerrando servidor...');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT recibido. Cerrando servidor...');
+  process.exit(0);
 });

@@ -4,7 +4,20 @@
 */
 
 (() => {
-  // Elementos del DOM
+  // Configuración del backend
+  const BACKEND_URL = 'http://localhost:3000';
+  
+  // Elementos del DOM para login
+  const loginContainer = document.getElementById('loginContainer');
+  const mainApp = document.getElementById('mainApp');
+  const loginForm = document.getElementById('loginForm');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginError = document.getElementById('loginError');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const usernameInput = document.getElementById('username');
+  const passwordInput = document.getElementById('password');
+
+  // Elementos del DOM para QR scanner
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const startBtn = document.getElementById('startBtn');
@@ -13,6 +26,12 @@
   const historyList = document.getElementById('historyList');
   const torchToggle = document.getElementById('torchToggle');
 
+  // Estado de autenticación
+  let isAuthenticated = false;
+  let currentUser = null;
+  let authToken = null;
+
+  // Variables del QR scanner
   let streamingStream = null;     // MediaStream actual
   let scanning = false;           // Flag principal de escaneo
   let rafId = null;               // requestAnimationFrame id
@@ -144,8 +163,8 @@
     // Log en consola (requisito)
     console.log('QR decodificado:', decodedText);
 
-    // Simulamos llamada al backend con fetch (aquí se reemplaza con fakeFetch)
-    simulateApiCall(decodedText)
+    // Llamada real al backend
+    registerAttendance(decodedText)
       .then(response => {
         // Mostrar en UI
         showResult(decodedText, response);
@@ -153,8 +172,8 @@
         addToHistory(decodedText, response);
       })
       .catch(err => {
-        console.error('Error en simulación API:', err);
-        showResult(decodedText, { ok: false, mensaje: 'Error de red (simulado)' });
+        console.error('Error en petición al backend:', err);
+        showResult(decodedText, { ok: false, mensaje: 'Error de conexión con el servidor' });
       });
   }
 
@@ -168,26 +187,172 @@
     }
   }
 
-  // Simulación de llamada a API (usa fetch en una app real).
-  // Aquí devolvemos un objeto parecido a una respuesta JSON real.
-  function simulateApiCall(qrText) {
-    return new Promise((resolve) => {
-      // Simulamos latencia de red
-      setTimeout(() => {
-        // Buscamos en base de datos simulada
-        const alumno = fakeDatabase[qrText];
-        if (alumno) {
-          resolve({ ok: true, alumno });
-        } else {
-          // Si no está, devolvemos una respuesta "no encontrado" con datos simulados
-          resolve({
-            ok: true,
-            alumno: { nombre: "Desconocido", apellido: "", estado: "No registrado" },
-            mensaje: 'ID no encontrado en la base local (simulado).'
-          });
-        }
-      }, 700); // 700 ms latencia simulada
-    });
+  // Funciones de autenticación
+  function checkAuthentication() {
+    const savedToken = localStorage.getItem('asistia_auth_token');
+    const savedUser = localStorage.getItem('asistia_user');
+    
+    if (savedToken && savedUser) {
+      try {
+        authToken = savedToken;
+        currentUser = JSON.parse(savedUser);
+        isAuthenticated = true;
+        showMainApp();
+        return true;
+      } catch (e) {
+        localStorage.removeItem('asistia_auth_token');
+        localStorage.removeItem('asistia_user');
+      }
+    }
+    return false;
+  }
+
+  function showLoginForm() {
+    loginContainer.style.display = 'flex';
+    mainApp.style.display = 'none';
+    isAuthenticated = false;
+    currentUser = null;
+    authToken = null;
+  }
+
+  function showMainApp() {
+    loginContainer.style.display = 'none';
+    mainApp.style.display = 'grid';
+    isAuthenticated = true;
+  }
+
+  async function handleLogin(event) {
+    event.preventDefault();
+    
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value;
+    
+    // Limpiar errores previos
+    hideLoginError();
+    
+    // Validación básica
+    if (!username || !password) {
+      showLoginError('Por favor, completa todos los campos');
+      return;
+    }
+    
+    // Mostrar estado de carga
+    setLoginLoading(true);
+    
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await response.json();
+      
+      if (data.ok) {
+        // Login exitoso
+        authToken = data.data.token;
+        currentUser = data.data.user;
+        
+        // Guardar en localStorage
+        localStorage.setItem('asistia_auth_token', authToken);
+        localStorage.setItem('asistia_user', JSON.stringify(currentUser));
+        
+        isAuthenticated = true;
+        showMainApp();
+        
+        // Limpiar formulario
+        loginForm.reset();
+      } else {
+        // Login fallido
+        showLoginError(data.mensaje || 'Error de autenticación');
+      }
+    } catch (error) {
+      console.error('Error en login:', error);
+      showLoginError('Error de conexión con el servidor');
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
+  function handleLogout() {
+    // Detener cámara si está activa
+    stopCamera();
+    
+    // Limpiar sesión
+    localStorage.removeItem('asistia_auth_token');
+    localStorage.removeItem('asistia_user');
+    isAuthenticated = false;
+    currentUser = null;
+    authToken = null;
+    
+    // Mostrar formulario de login
+    showLoginForm();
+  }
+
+  function showLoginError(message) {
+    loginError.textContent = message;
+    loginError.style.display = 'block';
+  }
+
+  function hideLoginError() {
+    loginError.style.display = 'none';
+  }
+
+  function setLoginLoading(loading) {
+    const btnText = loginBtn.querySelector('.btn-text');
+    const btnLoading = loginBtn.querySelector('.btn-loading');
+    
+    if (loading) {
+      btnText.style.display = 'none';
+      btnLoading.style.display = 'inline';
+      loginBtn.disabled = true;
+    } else {
+      btnText.style.display = 'inline';
+      btnLoading.style.display = 'none';
+      loginBtn.disabled = false;
+    }
+  }
+
+  // Llamada real al backend para registrar asistencia
+  async function registerAttendance(qrText) {
+    try {
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      // Añadir token de autenticación si está disponible
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/asistencia`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ id: qrText })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error en la petición al backend:', error);
+      // Fallback a datos simulados si el backend no está disponible
+      const alumno = fakeDatabase[qrText];
+      if (alumno) {
+        return { ok: true, alumno };
+      } else {
+        return {
+          ok: false,
+          alumno: { nombre: "Error", apellido: "", estado: "No registrado" },
+          mensaje: 'Error de conexión con el servidor. Usando datos locales.'
+        };
+      }
+    }
   }
 
   // Muestra resultado en la tarjeta principal
@@ -245,6 +410,11 @@
   }
 
   // Botones
+  // Event listeners para autenticación
+  loginForm.addEventListener('submit', handleLogin);
+  logoutBtn.addEventListener('click', handleLogout);
+
+  // Botones del QR scanner
   startBtn.addEventListener('click', startCamera);
   stopBtn.addEventListener('click', stopCamera);
 
@@ -272,12 +442,50 @@
     }
   });
 
+  // Función para obtener estadísticas del backend
+  async function getAttendanceStats() {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/stats`);
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error obteniendo estadísticas:', error);
+      return null;
+    }
+  }
+
+  // Función para mostrar estadísticas en consola (opcional)
+  async function logStats() {
+    const stats = await getAttendanceStats();
+    if (stats && stats.ok) {
+      console.log('📊 Estadísticas de asistencia:', stats.stats);
+    }
+  }
+
   // Si cerramos la pestaña o recargamos, detenemos la cámara
   window.addEventListener('pagehide', stopCamera);
   window.addEventListener('unload', stopCamera);
 
-  // Inicia automaticamente en dispositivos compatibles (opcional)
-  // startCamera();
+  // Inicialización de la aplicación
+  function initializeApp() {
+    // Verificar autenticación al cargar
+    if (!checkAuthentication()) {
+      showLoginForm();
+    } else {
+      // Obtener estadísticas si está autenticado
+      logStats();
+    }
+  }
+
+  // Inicializar cuando el DOM esté listo
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+  } else {
+    initializeApp();
+  }
 
   // FIN del IIFE
 })();
