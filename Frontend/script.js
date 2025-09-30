@@ -1,9 +1,65 @@
+    const btnVolverMenuEscanear = document.getElementById('btnVolverMenuEscanear');
+    const btnVolverMenuGenerar = document.getElementById('btnVolverMenuGenerar');
+
+    if (btnVolverMenuEscanear) {
+      btnVolverMenuEscanear.addEventListener('click', () => {
+        menuPrincipal.style.display = '';
+        seccionEscanear.style.display = 'none';
+        seccionGenerar.style.display = 'none';
+      });
+    }
+    if (btnVolverMenuGenerar) {
+      btnVolverMenuGenerar.addEventListener('click', () => {
+        menuPrincipal.style.display = '';
+        seccionEscanear.style.display = 'none';
+        seccionGenerar.style.display = 'none';
+      });
+    }
 /* script.js
    Lógica de escaneo QR en tiempo real usando jsQR.
    Comentarios en español describiendo cada parte importante.
 */
 
 (() => {
+  // --- Menú principal: navegación entre pantallas ---
+  document.addEventListener('DOMContentLoaded', () => {
+    const menuPrincipal = document.getElementById('menuPrincipal');
+    const btnIrEscanear = document.getElementById('btnIrEscanear');
+    const btnIrGenerar = document.getElementById('btnIrGenerar');
+    const seccionEscanear = document.getElementById('seccionEscanear');
+    const seccionGenerar = document.getElementById('seccionGenerar');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Mostrar solo el menú principal al inicio
+    if (menuPrincipal && seccionEscanear && seccionGenerar) {
+      menuPrincipal.style.display = '';
+      seccionEscanear.style.display = 'none';
+      seccionGenerar.style.display = 'none';
+    }
+
+    if (btnIrEscanear) {
+      btnIrEscanear.addEventListener('click', () => {
+        menuPrincipal.style.display = 'none';
+        seccionEscanear.style.display = '';
+        seccionGenerar.style.display = 'none';
+      });
+    }
+    if (btnIrGenerar) {
+      btnIrGenerar.addEventListener('click', () => {
+        menuPrincipal.style.display = 'none';
+        seccionEscanear.style.display = 'none';
+        seccionGenerar.style.display = '';
+      });
+    }
+    // Botón cerrar sesión: regresa al menú principal
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        menuPrincipal.style.display = '';
+        seccionEscanear.style.display = 'none';
+        seccionGenerar.style.display = 'none';
+      });
+    }
+  });
   // Configuración del backend
   const BACKEND_URL = 'http://localhost:3000';
   

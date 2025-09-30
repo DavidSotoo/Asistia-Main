@@ -10,6 +10,10 @@
   <script src="script.js" defer></script>
 </head>
 <body>
+    <!-- Librería QRCode.js para generar QR (CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Script para generar QR -->
+    <script src="generarQR.js"></script>
   <!-- Login Form -->
   <div id="loginContainer" class="login-container">
     <div class="login-card">
@@ -57,64 +61,85 @@
 
   <!-- Main App (hidden until login) -->
   <main class="container" id="mainApp" style="display: none;">
-    <header class="header">
-      <div class="header-content">
-        <div>
-          <h1>Control de Asistencia — Escaneo QR</h1>
-          <p class="sub">Muestra tu código QR al lente. Compatible desktop y móvil.</p>
-        </div>
-        <button id="logoutBtn" class="logout-btn" title="Cerrar sesión">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16,17 21,12 16,7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-          Cerrar Sesión
-        </button>
+    <!-- Pantalla de menú principal -->
+    <section id="menuPrincipal" class="menu-principal">
+      <h1 class="menu-title">¿Qué deseas hacer?</h1>
+      <div class="menu-btns">
+        <button id="btnIrEscanear" class="menu-btn-grande">Escanear QR</button>
+        <button id="btnIrGenerar" class="menu-btn-grande">Generar QR</button>
       </div>
-    </header>
-
-    <section class="scanner">
-      <!-- Área de video (stream de la cámara) -->
-      <div class="video-wrap">
-        <video id="video" playsinline autoplay muted></video>
-        <!-- marco de guía opcional -->
-        <div class="overlay">
-          <div class="frame"></div>
-        </div>
-      </div>
-
-      <!-- Controles -->
-      <div class="controls">
-        <button id="startBtn" class="btn">Iniciar cámara</button>
-        <button id="stopBtn" class="btn btn-secondary" disabled>Detener cámara</button>
-        <label class="switch">
-          <input type="checkbox" id="torchToggle" />
-          <span class="slider"></span>
-          <span class="label-text">Linterna (si está disponible)</span>
-        </label>
-      </div>
+      <button id="logoutBtn" class="logout-btn" title="Cerrar sesión" style="margin-top:40px;">Cerrar Sesión</button>
     </section>
 
-    <!-- Resultados del escaneo -->
-    <aside class="results" aria-live="polite">
-      <h2>Resultado</h2>
-      <div id="resultCard" class="card empty">
-        <p class="hint">Aún no se ha escaneado ningún QR.</p>
+    <!-- Sección Escanear QR (inicialmente oculta) -->
+    <section id="seccionEscanear" style="display:none;">
+      <header class="header">
+        <div class="header-content">
+          <div>
+            <h1>Control de Asistencia — Escaneo QR</h1>
+            <p class="sub">Muestra tu código QR al lente. Compatible desktop y móvil.</p>
+          </div>
+        </div>
+      </header>
+      <div class="scanner">
+        <div class="video-wrap">
+          <video id="video" playsinline autoplay muted></video>
+          <div class="overlay">
+            <div class="frame"></div>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="startBtn" class="btn">Iniciar cámara</button>
+          <button id="stopBtn" class="btn btn-secondary" disabled>Detener cámara</button>
+          <div class="switch-torch">
+            <input type="checkbox" id="torchSwitch">
+            <label for="torchSwitch" class="switch-torch-label"></label>
+            <span class="switch-torch-text">Linterna (si está disponible)</span>
+          </div>
+        </div>
       </div>
-
-      <div class="history">
-        <h3>Historial reciente</h3>
-        <ul id="historyList"></ul>
+      <aside class="results" aria-live="polite">
+        <h2>Resultado</h2>
+        <div id="resultCard" class="card empty">
+          <p class="hint">Aún no se ha escaneado ningún QR.</p>
+        </div>
+        <div class="history">
+          <h3>Historial reciente</h3>
+          <ul id="historyList"></ul>
+        </div>
+      </aside>
+      <canvas id="canvas" hidden></canvas>
+      <div style="text-align:center; margin: 32px 0 0 0;">
+        <button id="btnVolverMenuEscanear" class="volver-menu-btn">Volver al menú principal</button>
       </div>
-    </aside>
+      <footer class="footer">
+        <small>Simulación de backend: se muestra la respuesta simulada tras cada escaneo.</small>
+      </footer>
+    </section>
 
-    <!-- Canvas oculto para procesar frames -->
-    <canvas id="canvas" hidden></canvas>
-
-    <footer class="footer">
-      <small>Simulación de backend: se muestra la respuesta simulada tras cada escaneo.</small>
-    </footer>
+    <!-- Sección Generar QR (inicialmente oculta) -->
+    <section id="seccionGenerar" style="display:none;">
+      <div class="qr-form-container">
+        <h1>Generar QR para Alumno</h1>
+        <form id="formAlumno">
+          <label for="nombre">Nombre completo</label>
+          <input type="text" id="nombre" required>
+          <label for="matricula">Matrícula</label>
+          <input type="text" id="matricula" required>
+          <label for="grupo">Grupo</label>
+          <input type="text" id="grupo" required>
+          <button type="submit">Generar QR</button>
+        </form>
+        <div id="resultado" class="resultado">
+          <h2>Código QR generado</h2>
+          <img id="qrImagen" src="" alt="QR del alumno" hidden>
+          <a id="descargarQR" href="" download="alumno_qr.png" hidden>Descargar QR</a>
+        </div>
+        <p id="mensaje" class="mensaje"></p>
+      <div style="text-align:center; margin: 32px 0 0 0;">
+        <button id="btnVolverMenuGenerar" class="volver-menu-btn">Volver al menú principal</button>
+      </div>
+    </section>
   </main>
 </body>
 </html>
