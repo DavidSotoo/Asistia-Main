@@ -1,0 +1,23 @@
+{
+  "name": "asistia-main",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dev.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DavidSotoo/Asistia-Main.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DavidSotoo/Asistia-Main/issues"
+  },
+  "homepage": "https://github.com/DavidSotoo/Asistia-Main#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

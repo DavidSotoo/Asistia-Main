@@ -1,7 +1,54 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById("formAlumno");
+  const generarNuevoQRBtn = document.getElementById("generarNuevoQR");
+  const nombreInput = document.getElementById("nombre");
+  const matriculaInput = document.getElementById("matricula");
+  const grupoInput = document.getElementById("grupo");
   if (!form) return;
+
+  // Función para resetear el formulario y ocultar elementos
+  function resetForm() {
+    form.reset();
+    document.getElementById("qrImagen").src = "";
+    document.getElementById("qrImagen").hidden = true;
+    document.getElementById("descargarQR").href = "";
+    document.getElementById("descargarQR").hidden = true;
+    generarNuevoQRBtn.hidden = true;
+    const mensaje = document.getElementById("mensaje");
+    if (mensaje) {
+      mensaje.textContent = "";
+    }
+  }
+
+  // Función para validar y restringir entrada en tiempo real
+  function validateInput(input, allowedRegex, errorMessage) {
+    input.addEventListener('input', (e) => {
+      // Remover caracteres inválidos directamente
+      e.target.value = e.target.value.replace(allowedRegex, '');
+    });
+
+    input.addEventListener('paste', (e) => {
+      const paste = (e.clipboardData || window.clipboardData).getData('text');
+      if (!paste.match(new RegExp(`^[${allowedRegex.source.slice(1, -2)}]*$`))) {
+        e.preventDefault();
+        const mensaje = document.getElementById("mensaje");
+        if (mensaje) {
+          mensaje.textContent = errorMessage;
+          mensaje.style.color = "orange";
+          setTimeout(() => {
+            mensaje.textContent = "";
+          }, 3000);
+        }
+      }
+    });
+  }
+
+  // Aplicar validaciones en tiempo real
+  validateInput(nombreInput, /[^a-zA-Z\s]/g, "Solo se permiten letras y espacios en el nombre.");
+  validateInput(matriculaInput, /[^0-9]/g, "Solo se permiten números en la matrícula.");
+  validateInput(grupoInput, /[^a-zA-Z0-9\s]/g, "Solo se permiten letras, números y espacios en el grupo.");
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -31,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById("qrImagen").hidden = false;
         document.getElementById("descargarQR").href = data.qr;
         document.getElementById("descargarQR").hidden = false;
+        generarNuevoQRBtn.hidden = false;
 
         mensaje.textContent = "✅ QR generado con éxito.";
         mensaje.style.color = "green";
@@ -44,4 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
       mensaje.style.color = "red";
     }
   });
+
+  // Event listener para el botón "Generar Nuevo QR"
+  if (generarNuevoQRBtn) {
+    generarNuevoQRBtn.addEventListener("click", resetForm);
+  }
 });

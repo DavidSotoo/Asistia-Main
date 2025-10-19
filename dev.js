@@ -33,38 +33,43 @@ let isShuttingDown = false;
  */
 function killProcessOnPort(port) {
   return new Promise((resolve, reject) => {
-    const command = process.platform === 'win32' 
-      ? `netstat -ano | findstr :${port}` 
+    const command = process.platform === 'win32'
+      ? `netstat -ano | findstr :${port}`
       : `lsof -ti:${port}`;
-    
+
     exec(command, (error, stdout, stderr) => {
-      if (error) {
+      if (error || !stdout.trim()) {
         // No hay procesos usando el puerto
+        console.log(`ℹ️  No hay procesos en puerto ${port}`);
         resolve();
         return;
       }
 
-      const pids = stdout.trim().split('\n').filter(pid => pid);
-      
+      const lines = stdout.trim().split('\n').filter(line => line.trim());
+      const pids = lines.map(line => {
+        const parts = line.trim().split(/\s+/);
+        return parts[parts.length - 1];
+      }).filter(pid => /^\d+$/.test(pid));
+
       if (pids.length === 0) {
+        console.log(`ℹ️  No hay procesos en puerto ${port}`);
         resolve();
         return;
       }
 
       console.log(`🔴 Matando procesos en puerto ${port}: ${pids.join(', ')}`);
-      
+
       const killCommand = process.platform === 'win32'
         ? `taskkill /F /PID ${pids.join(' /PID ')}`
         : `kill -9 ${pids.join(' ')}`;
-      
+
       exec(killCommand, (killError) => {
         if (killError) {
-          console.error(`❌ Error matando procesos en puerto ${port}:`, killError.message);
-          reject(killError);
+          console.log(`ℹ️  Error matando procesos en puerto ${port}: ${killError.message}`);
         } else {
           console.log(`✅ Procesos en puerto ${port} terminados correctamente`);
-          resolve();
         }
+        resolve(); // No rechazar, solo resolver
       });
     });
   });

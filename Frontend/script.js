@@ -1,11 +1,33 @@
+    const btnIrLista = document.getElementById('btnIrLista');
+    const seccionLista = document.getElementById('seccionLista');
     const btnVolverMenuEscanear = document.getElementById('btnVolverMenuEscanear');
     const btnVolverMenuGenerar = document.getElementById('btnVolverMenuGenerar');
+    const btnVolverMenuLista = document.getElementById('btnVolverMenuLista');
+
+    // Mostrar solo el menú principal al inicio
+    if (menuPrincipal && seccionEscanear && seccionGenerar && seccionLista) {
+      menuPrincipal.style.display = '';
+      seccionEscanear.style.display = 'none';
+      seccionGenerar.style.display = 'none';
+      seccionLista.style.display = 'none';
+    }
+
+    if (btnIrLista) {
+      btnIrLista.addEventListener('click', () => {
+        menuPrincipal.style.display = 'none';
+        seccionEscanear.style.display = 'none';
+        seccionGenerar.style.display = 'none';
+        seccionLista.style.display = '';
+        loadAttendanceList();
+      });
+    }
 
     if (btnVolverMenuEscanear) {
       btnVolverMenuEscanear.addEventListener('click', () => {
         menuPrincipal.style.display = '';
         seccionEscanear.style.display = 'none';
         seccionGenerar.style.display = 'none';
+        seccionLista.style.display = 'none';
       });
     }
     if (btnVolverMenuGenerar) {
@@ -13,6 +35,15 @@
         menuPrincipal.style.display = '';
         seccionEscanear.style.display = 'none';
         seccionGenerar.style.display = 'none';
+        seccionLista.style.display = 'none';
+      });
+    }
+    if (btnVolverMenuLista) {
+      btnVolverMenuLista.addEventListener('click', () => {
+        menuPrincipal.style.display = '';
+        seccionEscanear.style.display = 'none';
+        seccionGenerar.style.display = 'none';
+        seccionLista.style.display = 'none';
       });
     }
 /* script.js
@@ -533,6 +564,150 @@
     } else {
       // Obtener estadísticas si está autenticado
       logStats();
+    }
+  }
+
+  // Función para cargar la lista de asistencia
+  async function loadAttendanceList() {
+    try {
+      const headers = {};
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/listado`, {
+        method: 'GET',
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.ok) {
+        renderAttendanceTable(data.alumnos);
+        updateStats(data.alumnos);
+      } else {
+        console.error('Error obteniendo lista:', data.mensaje);
+        alert('Error al cargar la lista de asistencia');
+      }
+    } catch (error) {
+      console.error('Error cargando lista de asistencia:', error);
+      alert('Error de conexión con el servidor');
+    }
+  }
+
+  // Función para renderizar la tabla de asistencia
+  function renderAttendanceTable(alumnos) {
+    const tableBody = document.getElementById('attendanceTableBody');
+    tableBody.innerHTML = '';
+
+    alumnos.forEach(alumno => {
+      const row = document.createElement('tr');
+
+      // ID
+      const idCell = document.createElement('td');
+      idCell.textContent = alumno.id;
+      row.appendChild(idCell);
+
+      // Nombre
+      const nombreCell = document.createElement('td');
+      nombreCell.textContent = alumno.nombre;
+      row.appendChild(nombreCell);
+
+      // Apellido
+      const apellidoCell = document.createElement('td');
+      apellidoCell.textContent = alumno.apellido;
+      row.appendChild(apellidoCell);
+
+      // Estado
+      const estadoCell = document.createElement('td');
+      const statusBadge = document.createElement('span');
+      statusBadge.className = `status-badge status-${alumno.estado.toLowerCase()}`;
+      statusBadge.textContent = alumno.estado;
+      estadoCell.appendChild(statusBadge);
+      row.appendChild(estadoCell);
+
+      // Última actualización
+      const updateCell = document.createElement('td');
+      updateCell.className = 'last-updated';
+      updateCell.textContent = alumno.lastUpdated ? new Date(alumno.lastUpdated).toLocaleString() : 'N/A';
+      row.appendChild(updateCell);
+
+      // Acciones
+      const actionsCell = document.createElement('td');
+      const presenteBtn = document.createElement('button');
+      presenteBtn.className = 'action-btn presente';
+      presenteBtn.textContent = 'Presente';
+      presenteBtn.onclick = () => updateStudentStatus(alumno.id, 'Presente');
+
+      const ausenteBtn = document.createElement('button');
+      ausenteBtn.className = 'action-btn ausente';
+      ausenteBtn.textContent = 'Ausente';
+      ausenteBtn.onclick = () => updateStudentStatus(alumno.id, 'Ausente');
+
+      const tardeBtn = document.createElement('button');
+      tardeBtn.className = 'action-btn tarde';
+      tardeBtn.textContent = 'Tarde';
+      tardeBtn.onclick = () => updateStudentStatus(alumno.id, 'Tarde');
+
+      actionsCell.appendChild(presenteBtn);
+      actionsCell.appendChild(ausenteBtn);
+      actionsCell.appendChild(tardeBtn);
+      row.appendChild(actionsCell);
+
+      tableBody.appendChild(row);
+    });
+  }
+
+  // Función para actualizar estadísticas
+  function updateStats(alumnos) {
+    const total = alumnos.length;
+    const presentes = alumnos.filter(a => a.estado === 'Presente').length;
+    const ausentes = alumnos.filter(a => a.estado === 'Ausente').length;
+    const tarde = alumnos.filter(a => a.estado === 'Tarde').length;
+
+    document.getElementById('totalAlumnos').textContent = total;
+    document.getElementById('totalPresentes').textContent = presentes;
+    document.getElementById('totalAusentes').textContent = ausentes;
+    document.getElementById('totalTarde').textContent = tarde;
+  }
+
+  // Función para actualizar el estado de un estudiante
+  async function updateStudentStatus(id, status) {
+    try {
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/student/${id}/status`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ status })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.ok) {
+        // Recargar la lista después de actualizar
+        loadAttendanceList();
+        alert(`Estado actualizado: ${data.alumno.nombre} ${data.alumno.apellido} - ${data.alumno.estado}`);
+      } else {
+        console.error('Error actualizando estado:', data.mensaje);
+        alert('Error al actualizar el estado del estudiante');
+      }
+    } catch (error) {
+      console.error('Error actualizando estado:', error);
+      alert('Error de conexión con el servidor');
     }
   }
 
