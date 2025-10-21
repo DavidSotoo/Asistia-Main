@@ -1,11 +1,14 @@
 // server.js
-// Backend refactorizado para control de asistencia con Node.js + Express
+// Backend refactorizado para control de asistencia con Node.js + Express + PostgreSQL
 
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+
+// Importar servicios de base de datos
+const databaseService = require('./services/databaseService');
 
 // Importar rutas
 const attendanceRoutes = require('./routes/attendance');
@@ -42,14 +45,24 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    version: '1.0.0'
-  });
+app.get('/health', async (req, res) => {
+  try {
+    const dbHealth = await databaseService.healthCheck();
+    res.json({ 
+      status: 'OK', 
+      timestamp: new Date().toISOString(),
+      version: '2.0.0',
+      database: dbHealth
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'ERROR',
+      timestamp: new Date().toISOString(),
+      version: '2.0.0',
+      error: error.message
+    });
+  }
 });
 
 // Endpoint para generar QR
@@ -77,20 +90,37 @@ app.use('/api/auth', authRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-// Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor de asistencia escuchando en http://localhost:${PORT}`);
-  console.log(`📊 Health check disponible en http://localhost:${PORT}/health`);
-  console.log(`🔐 Entorno: ${process.env.NODE_ENV || 'development'}`);
-});
+// Función para inicializar el servidor
+async function startServer() {
+  try {
+    // Conectar a la base de datos
+    await databaseService.connect();
+    
+    // Iniciar servidor
+    app.listen(PORT, () => {
+      console.log(`🚀 Servidor de asistencia escuchando en http://localhost:${PORT}`);
+      console.log(`📊 Health check disponible en http://localhost:${PORT}/health`);
+      console.log(`🔐 Entorno: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🗄️  Base de datos: PostgreSQL con Prisma`);
+    });
+  } catch (error) {
+    console.error('❌ Error iniciando servidor:', error);
+    process.exit(1);
+  }
+}
 
 // Manejo de cierre graceful
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('SIGTERM recibido. Cerrando servidor...');
+  await databaseService.disconnect();
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('SIGINT recibido. Cerrando servidor...');
+  await databaseService.disconnect();
   process.exit(0);
 });
+
+// Iniciar servidor
+startServer();

@@ -1,0 +1,54 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  name      String
+  role      String   @default("operador")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Student {
+  id        String   @id
+  nombre    String
+  apellido  String
+  grupo     String?
+  email     String?
+  telefono  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relación con asistencia
+  attendance Attendance[]
+
+  @@map("students")
+}
+
+model Attendance {
+  id             String   @id @default(uuid())
+  studentId      String   @map("student_id")
+  status         String   @default("Ausente")
+  attendanceDate DateTime @default(now()) @map("attendance_date") @db.Date
+  attendanceTime DateTime @default(now()) @map("attendance_time")
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relación con estudiante
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("attendance")
+}

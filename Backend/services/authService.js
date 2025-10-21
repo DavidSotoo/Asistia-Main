@@ -1,60 +1,55 @@
 // services/authService.js
-// Servicio para autenticación
+// Servicio para autenticación usando PostgreSQL con Prisma
 
 const jwt = require('jsonwebtoken');
-
-// Configuración de usuarios (en producción esto debería estar en una base de datos)
-const users = {
-  "admin": { 
-    password: "admin123", 
-    role: "administrador", 
-    name: "Administrador" 
-  },
-  "profesor": { 
-    password: "prof123", 
-    role: "profesor", 
-    name: "Profesor" 
-  },
-  "operador": { 
-    password: "oper123", 
-    role: "operador", 
-    name: "Operador" 
-  }
-};
+const databaseService = require('./databaseService');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'asistia-secret-key-2024';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 
 class AuthService {
+  constructor() {
+    this.prisma = databaseService.getClient();
+  }
+
   /**
    * Autenticar usuario
    */
   async authenticateUser(username, password) {
-    const user = users[username];
-    
-    if (!user) {
-      throw new Error('Usuario no encontrado');
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { username }
+      });
+      
+      if (!user) {
+        throw new Error('Usuario no encontrado');
+      }
+
+      if (user.password !== password) {
+        throw new Error('Contraseña incorrecta');
+      }
+
+      // Generar token JWT
+      const token = this.generateToken({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        name: user.name
+      });
+
+      return {
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          role: user.role
+        },
+        token
+      };
+    } catch (error) {
+      console.error('Error en autenticación:', error);
+      throw error;
     }
-
-    if (user.password !== password) {
-      throw new Error('Contraseña incorrecta');
-    }
-
-    // Generar token JWT
-    const token = this.generateToken({
-      username,
-      role: user.role,
-      name: user.name
-    });
-
-    return {
-      user: {
-        username,
-        name: user.name,
-        role: user.role
-      },
-      token
-    };
   }
 
   /**
@@ -80,8 +75,110 @@ class AuthService {
   /**
    * Obtener usuario por username
    */
-  getUserByUsername(username) {
-    return users[username] || null;
+  async getUserByUsername(username) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { username }
+      });
+      return user;
+    } catch (error) {
+      console.error('Error obteniendo usuario:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Obtener usuario por ID
+   */
+  async getUserById(id) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id }
+      });
+      return user;
+    } catch (error) {
+      console.error('Error obteniendo usuario por ID:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Crear nuevo usuario
+   */
+  async createUser(userData) {
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          username: userData.username,
+          password: userData.password,
+          name: userData.name,
+          role: userData.role || 'operador'
+        }
+      });
+      return user;
+    } catch (error) {
+      console.error('Error creando usuario:', error);
+      throw new Error('Error al crear usuario');
+    }
+  }
+
+  /**
+   * Actualizar usuario
+   */
+  async updateUser(id, userData) {
+    try {
+      const user = await this.prisma.user.update({
+        where: { id },
+        data: {
+          ...userData,
+          updatedAt: new Date()
+        }
+      });
+      return user;
+    } catch (error) {
+      console.error('Error actualizando usuario:', error);
+      throw new Error('Error al actualizar usuario');
+    }
+  }
+
+  /**
+   * Eliminar usuario
+   */
+  async deleteUser(id) {
+    try {
+      await this.prisma.user.delete({
+        where: { id }
+      });
+      return true;
+    } catch (error) {
+      console.error('Error eliminando usuario:', error);
+      throw new Error('Error al eliminar usuario');
+    }
+  }
+
+  /**
+   * Obtener todos los usuarios
+   */
+  async getAllUsers() {
+    try {
+      const users = await this.prisma.user.findMany({
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+      return users;
+    } catch (error) {
+      console.error('Error obteniendo usuarios:', error);
+      throw new Error('Error al obtener usuarios');
+    }
   }
 }
 

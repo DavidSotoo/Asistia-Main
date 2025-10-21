@@ -1,23 +1,50 @@
 // services/attendanceService.js
-// Servicio para manejo de asistencia
+// Servicio para manejo de asistencia usando PostgreSQL con Prisma
 
-const fs = require('fs').promises;
-const path = require('path');
-
-const DB_PATH = path.join(__dirname, '../database.json');
+const databaseService = require('./databaseService');
 
 class AttendanceService {
+  constructor() {
+    this.prisma = databaseService.getClient();
+  }
+
   /**
    * Leer todos los estudiantes desde la base de datos
    */
   async getAllStudents() {
     try {
-      const data = await fs.readFile(DB_PATH, 'utf8');
-      const estudiantes = JSON.parse(data);
-      
+      const estudiantes = await this.prisma.student.findMany({
+        include: {
+          attendance: {
+            where: {
+              attendanceDate: new Date(new Date().toISOString().split('T')[0])
+            },
+            orderBy: {
+              attendanceTime: 'desc'
+            },
+            take: 1
+          }
+        },
+        orderBy: {
+          id: 'asc'
+        }
+      });
+
+      // Transformar datos para mantener compatibilidad con el frontend
+      const alumnos = estudiantes.map(student => {
+        const todayAttendance = student.attendance[0];
+        return {
+          id: student.id,
+          nombre: student.nombre,
+          apellido: student.apellido,
+          estado: todayAttendance ? todayAttendance.status : 'Ausente',
+          lastUpdated: todayAttendance ? todayAttendance.attendanceTime.toISOString() : null
+        };
+      });
+
       return {
         ok: true,
-        alumnos: estudiantes
+        alumnos
       };
     } catch (error) {
       console.error('Error leyendo la base de datos:', error);
@@ -30,34 +57,90 @@ class AttendanceService {
    */
   async registerAttendance(id) {
     try {
-      const data = await fs.readFile(DB_PATH, 'utf8');
-      let estudiantes = JSON.parse(data);
+      const student = await this.prisma.student.findUnique({
+        where: { id }
+      });
 
-      const alumno = estudiantes.find((e) => e.id === id);
-
-      if (!alumno) {
+      if (!student) {
         return {
           ok: false,
           alumno: { nombre: "Error", estado: "No registrado" },
         };
       }
 
-      if (alumno.estado !== "Presente") {
-        alumno.estado = "Presente";
-        alumno.lastUpdated = new Date().toISOString();
-        
-        await fs.writeFile(DB_PATH, JSON.stringify(estudiantes, null, 2));
-        
+      const today = new Date(new Date().toISOString().split('T')[0]);
+
+      // Verificar si ya tiene asistencia registrada hoy
+      const existingAttendance = await this.prisma.attendance.findFirst({
+        where: {
+          studentId: id,
+          attendanceDate: today
+        }
+      });
+
+      if (existingAttendance) {
+        if (existingAttendance.status !== "Presente") {
+          // Actualizar estado a Presente
+          await this.prisma.attendance.update({
+            where: { id: existingAttendance.id },
+            data: {
+              status: "Presente",
+              attendanceTime: new Date()
+            }
+          });
+
+          const alumno = {
+            id: student.id,
+            nombre: student.nombre,
+            apellido: student.apellido,
+            estado: "Presente",
+            lastUpdated: new Date().toISOString()
+          };
+
+          return { 
+            ok: true, 
+            alumno,
+            mensaje: "Asistencia registrada exitosamente"
+          };
+        } else {
+          // Ya estaba presente
+          const alumno = {
+            id: student.id,
+            nombre: student.nombre,
+            apellido: student.apellido,
+            estado: "Presente",
+            lastUpdated: existingAttendance.attendanceTime.toISOString()
+          };
+
+          return {
+            ok: true,
+            alumno,
+            mensaje: "Alumno ya estaba marcado como presente",
+          };
+        }
+      } else {
+        // Crear nuevo registro de asistencia
+        await this.prisma.attendance.create({
+          data: {
+            studentId: id,
+            status: "Presente",
+            attendanceDate: today,
+            attendanceTime: new Date()
+          }
+        });
+
+        const alumno = {
+          id: student.id,
+          nombre: student.nombre,
+          apellido: student.apellido,
+          estado: "Presente",
+          lastUpdated: new Date().toISOString()
+        };
+
         return { 
           ok: true, 
           alumno,
           mensaje: "Asistencia registrada exitosamente"
-        };
-      } else {
-        return {
-          ok: true,
-          alumno,
-          mensaje: "Alumno ya estaba marcado como presente",
         };
       }
     } catch (error) {
@@ -71,26 +154,59 @@ class AttendanceService {
    */
   async updateStudentStatus(id, status) {
     try {
-      const data = await fs.readFile(DB_PATH, 'utf8');
-      let estudiantes = JSON.parse(data);
+      const student = await this.prisma.student.findUnique({
+        where: { id }
+      });
 
-      const alumnoIndex = estudiantes.findIndex((e) => e.id === id);
-
-      if (alumnoIndex === -1) {
+      if (!student) {
         return {
           ok: false,
           mensaje: "Estudiante no encontrado"
         };
       }
 
-      estudiantes[alumnoIndex].estado = status;
-      estudiantes[alumnoIndex].lastUpdated = new Date().toISOString();
-      
-      await fs.writeFile(DB_PATH, JSON.stringify(estudiantes, null, 2));
-      
+      const today = new Date(new Date().toISOString().split('T')[0]);
+
+      // Buscar o crear registro de asistencia para hoy
+      let attendance = await this.prisma.attendance.findFirst({
+        where: {
+          studentId: id,
+          attendanceDate: today
+        }
+      });
+
+      if (attendance) {
+        // Actualizar registro existente
+        attendance = await this.prisma.attendance.update({
+          where: { id: attendance.id },
+          data: {
+            status,
+            attendanceTime: new Date()
+          }
+        });
+      } else {
+        // Crear nuevo registro
+        attendance = await this.prisma.attendance.create({
+          data: {
+            studentId: id,
+            status,
+            attendanceDate: today,
+            attendanceTime: new Date()
+          }
+        });
+      }
+
+      const alumno = {
+        id: student.id,
+        nombre: student.nombre,
+        apellido: student.apellido,
+        estado: attendance.status,
+        lastUpdated: attendance.attendanceTime.toISOString()
+      };
+
       return {
         ok: true,
-        alumno: estudiantes[alumnoIndex],
+        alumno,
         mensaje: "Estado actualizado exitosamente"
       };
     } catch (error) {
@@ -104,14 +220,23 @@ class AttendanceService {
    */
   async getAttendanceStats() {
     try {
-      const data = await fs.readFile(DB_PATH, 'utf8');
-      const estudiantes = JSON.parse(data);
+      const today = new Date(new Date().toISOString().split('T')[0]);
+
+      // Contar total de estudiantes
+      const total = await this.prisma.student.count();
+
+      // Contar asistencia de hoy
+      const todayAttendance = await this.prisma.attendance.findMany({
+        where: {
+          attendanceDate: today
+        }
+      });
 
       const stats = {
-        total: estudiantes.length,
-        presente: estudiantes.filter(s => s.estado === 'Presente').length,
-        ausente: estudiantes.filter(s => s.estado === 'Ausente').length,
-        tarde: estudiantes.filter(s => s.estado === 'Tarde').length
+        total,
+        presente: todayAttendance.filter(a => a.status === 'Presente').length,
+        ausente: total - todayAttendance.filter(a => a.status === 'Presente' || a.status === 'Tarde').length,
+        tarde: todayAttendance.filter(a => a.status === 'Tarde').length
       };
 
       stats.attendanceRate = stats.total > 0 ? 
@@ -129,10 +254,31 @@ class AttendanceService {
    */
   async findStudentById(id) {
     try {
-      const data = await fs.readFile(DB_PATH, 'utf8');
-      const estudiantes = JSON.parse(data);
-      
-      return estudiantes.find((e) => e.id === id) || null;
+      const student = await this.prisma.student.findUnique({
+        where: { id },
+        include: {
+          attendance: {
+            where: {
+              attendanceDate: new Date(new Date().toISOString().split('T')[0])
+            },
+            orderBy: {
+              attendanceTime: 'desc'
+            },
+            take: 1
+          }
+        }
+      });
+
+      if (!student) return null;
+
+      const todayAttendance = student.attendance[0];
+      return {
+        id: student.id,
+        nombre: student.nombre,
+        apellido: student.apellido,
+        estado: todayAttendance ? todayAttendance.status : 'Ausente',
+        lastUpdated: todayAttendance ? todayAttendance.attendanceTime.toISOString() : null
+      };
     } catch (error) {
       console.error('Error buscando estudiante:', error);
       throw new Error('Error interno al buscar estudiante');
