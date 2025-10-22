@@ -33,7 +33,10 @@ app.use(cors({
     'http://127.0.0.1:3001',
     'file://',
     'http://localhost:5500',
-    'http://127.0.0.1:5500'
+    'http://127.0.0.1:5500',
+    'http://localhost:8080',
+    'http://localhost:8081',
+    'http://127.0.0.1:8081'
   ],
   credentials: true
 }));
@@ -68,12 +71,44 @@ app.get('/health', async (req, res) => {
 // Endpoint para generar QR
 app.post('/generarQR', async (req, res) => {
   try {
-    const { nombre, matricula, grupo } = req.body;
-    if (!nombre || !matricula || !grupo) {
+    const { nombre, apellido, matricula, grupo } = req.body;
+    if (!nombre || !apellido || !matricula || !grupo) {
       return res.status(400).json({ error: 'Faltan datos' });
     }
+
+    // Guardar estudiante en la base de datos
+    const databaseService = require('./services/databaseService');
+    const prisma = databaseService.getClient();
+
+    // Verificar si el estudiante ya existe
+    const existingStudent = await prisma.student.findUnique({
+      where: { id: matricula }
+    });
+
+    if (!existingStudent) {
+      // Crear nuevo estudiante
+      await prisma.student.create({
+        data: {
+          id: matricula,
+          nombre,
+          apellido,
+          grupo
+        }
+      });
+    } else {
+      // Actualizar datos del estudiante si es necesario
+      await prisma.student.update({
+        where: { id: matricula },
+        data: {
+          nombre,
+          apellido,
+          grupo
+        }
+      });
+    }
+
     // El texto del QR puede ser un JSON o solo la matrícula, aquí usamos JSON
-    const qrData = JSON.stringify({ nombre, matricula, grupo });
+    const qrData = JSON.stringify({ nombre: `${nombre} ${apellido}`, matricula, grupo });
     const qr = await QRCode.toDataURL(qrData);
     res.json({ qr });
   } catch (error) {

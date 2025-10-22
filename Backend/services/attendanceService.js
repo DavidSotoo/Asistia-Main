@@ -9,38 +9,33 @@ class AttendanceService {
   }
 
   /**
-   * Leer todos los estudiantes desde la base de datos
+   * Leer estudiantes con asistencia registrada hoy desde la base de datos
    */
   async getAllStudents() {
     try {
-      const estudiantes = await this.prisma.student.findMany({
+      const today = new Date(new Date().toISOString().split('T')[0]);
+
+      // Obtener registros de asistencia de hoy con información del estudiante
+      const attendanceRecords = await this.prisma.attendance.findMany({
+        where: {
+          attendanceDate: today
+        },
         include: {
-          attendance: {
-            where: {
-              attendanceDate: new Date(new Date().toISOString().split('T')[0])
-            },
-            orderBy: {
-              attendanceTime: 'desc'
-            },
-            take: 1
-          }
+          student: true
         },
         orderBy: {
-          id: 'asc'
+          attendanceTime: 'desc'
         }
       });
 
       // Transformar datos para mantener compatibilidad con el frontend
-      const alumnos = estudiantes.map(student => {
-        const todayAttendance = student.attendance[0];
-        return {
-          id: student.id,
-          nombre: student.nombre,
-          apellido: student.apellido,
-          estado: todayAttendance ? todayAttendance.status : 'Ausente',
-          lastUpdated: todayAttendance ? todayAttendance.attendanceTime.toISOString() : null
-        };
-      });
+      const alumnos = attendanceRecords.map(record => ({
+        id: record.student.id,
+        nombre: record.student.nombre,
+        apellido: record.student.apellido,
+        estado: record.status,
+        lastUpdated: record.attendanceTime.toISOString()
+      }));
 
       return {
         ok: true,
@@ -282,6 +277,51 @@ class AttendanceService {
     } catch (error) {
       console.error('Error buscando estudiante:', error);
       throw new Error('Error interno al buscar estudiante');
+    }
+  }
+
+  /**
+   * Actualizar estudiante
+   */
+  async updateStudent(id, data) {
+    try {
+      const student = await this.prisma.student.update({
+        where: { id },
+        data
+      });
+
+      return {
+        ok: true,
+        alumno: {
+          id: student.id,
+          nombre: student.nombre,
+          apellido: student.apellido,
+          grupo: student.grupo
+        },
+        mensaje: "Estudiante actualizado exitosamente"
+      };
+    } catch (error) {
+      console.error('Error actualizando estudiante:', error);
+      throw new Error('Error interno al actualizar estudiante');
+    }
+  }
+
+  /**
+   * Eliminar estudiante
+   */
+  async deleteStudent(id) {
+    try {
+      await this.prisma.student.delete({
+        where: { id }
+      });
+
+      return {
+        ok: true,
+        mensaje: "Estudiante eliminado exitosamente"
+      };
+    } catch (error) {
+      console.error('Error eliminando estudiante:', error);
+      throw new Error('Error interno al eliminar estudiante');
     }
   }
 }

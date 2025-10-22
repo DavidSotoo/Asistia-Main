@@ -1,51 +1,3 @@
-    const btnIrLista = document.getElementById('btnIrLista');
-    const seccionLista = document.getElementById('seccionLista');
-    const btnVolverMenuEscanear = document.getElementById('btnVolverMenuEscanear');
-    const btnVolverMenuGenerar = document.getElementById('btnVolverMenuGenerar');
-    const btnVolverMenuLista = document.getElementById('btnVolverMenuLista');
-
-    // Mostrar solo el menú principal al inicio
-    if (menuPrincipal && seccionEscanear && seccionGenerar && seccionLista) {
-      menuPrincipal.style.display = '';
-      seccionEscanear.style.display = 'none';
-      seccionGenerar.style.display = 'none';
-      seccionLista.style.display = 'none';
-    }
-
-    if (btnIrLista) {
-      btnIrLista.addEventListener('click', () => {
-        menuPrincipal.style.display = 'none';
-        seccionEscanear.style.display = 'none';
-        seccionGenerar.style.display = 'none';
-        seccionLista.style.display = '';
-        loadAttendanceList();
-      });
-    }
-
-    if (btnVolverMenuEscanear) {
-      btnVolverMenuEscanear.addEventListener('click', () => {
-        menuPrincipal.style.display = '';
-        seccionEscanear.style.display = 'none';
-        seccionGenerar.style.display = 'none';
-        seccionLista.style.display = 'none';
-      });
-    }
-    if (btnVolverMenuGenerar) {
-      btnVolverMenuGenerar.addEventListener('click', () => {
-        menuPrincipal.style.display = '';
-        seccionEscanear.style.display = 'none';
-        seccionGenerar.style.display = 'none';
-        seccionLista.style.display = 'none';
-      });
-    }
-    if (btnVolverMenuLista) {
-      btnVolverMenuLista.addEventListener('click', () => {
-        menuPrincipal.style.display = '';
-        seccionEscanear.style.display = 'none';
-        seccionGenerar.style.display = 'none';
-        seccionLista.style.display = 'none';
-      });
-    }
 /* script.js
    Lógica de escaneo QR en tiempo real usando jsQR.
    Comentarios en español describiendo cada parte importante.
@@ -57,15 +9,21 @@
     const menuPrincipal = document.getElementById('menuPrincipal');
     const btnIrEscanear = document.getElementById('btnIrEscanear');
     const btnIrGenerar = document.getElementById('btnIrGenerar');
+    const btnIrLista = document.getElementById('btnIrLista');
     const seccionEscanear = document.getElementById('seccionEscanear');
     const seccionGenerar = document.getElementById('seccionGenerar');
+    const seccionListado = document.getElementById('seccionListado');
     const logoutBtn = document.getElementById('logoutBtn');
+    const btnVolverMenuEscanear = document.getElementById('btnVolverMenuEscanear');
+    const btnVolverMenuGenerar = document.getElementById('btnVolverMenuGenerar');
+    const btnVolverMenuListado = document.getElementById('btnVolverMenuListado');
 
     // Mostrar solo el menú principal al inicio
-    if (menuPrincipal && seccionEscanear && seccionGenerar) {
+    if (menuPrincipal && seccionEscanear && seccionGenerar && seccionListado) {
       menuPrincipal.style.display = '';
       seccionEscanear.style.display = 'none';
       seccionGenerar.style.display = 'none';
+      seccionListado.style.display = 'none';
     }
 
     if (btnIrEscanear) {
@@ -73,6 +31,7 @@
         menuPrincipal.style.display = 'none';
         seccionEscanear.style.display = '';
         seccionGenerar.style.display = 'none';
+        seccionListado.style.display = 'none';
       });
     }
     if (btnIrGenerar) {
@@ -80,14 +39,52 @@
         menuPrincipal.style.display = 'none';
         seccionEscanear.style.display = 'none';
         seccionGenerar.style.display = '';
+        seccionListado.style.display = 'none';
       });
     }
+    if (btnIrLista) {
+      btnIrLista.addEventListener('click', () => {
+        menuPrincipal.style.display = 'none';
+        seccionEscanear.style.display = 'none';
+        seccionGenerar.style.display = 'none';
+        seccionListado.style.display = '';
+        loadAttendanceList();
+      });
+    }
+
     // Botón cerrar sesión: regresa al menú principal
     if (logoutBtn) {
       logoutBtn.addEventListener('click', () => {
         menuPrincipal.style.display = '';
         seccionEscanear.style.display = 'none';
         seccionGenerar.style.display = 'none';
+        seccionListado.style.display = 'none';
+      });
+    }
+
+    // Botones para volver al menú principal desde cada sección
+    if (btnVolverMenuEscanear) {
+      btnVolverMenuEscanear.addEventListener('click', () => {
+        menuPrincipal.style.display = '';
+        seccionEscanear.style.display = 'none';
+        seccionGenerar.style.display = 'none';
+        seccionListado.style.display = 'none';
+      });
+    }
+    if (btnVolverMenuGenerar) {
+      btnVolverMenuGenerar.addEventListener('click', () => {
+        menuPrincipal.style.display = '';
+        seccionEscanear.style.display = 'none';
+        seccionGenerar.style.display = 'none';
+        seccionListado.style.display = 'none';
+      });
+    }
+    if (btnVolverMenuListado) {
+      btnVolverMenuListado.addEventListener('click', () => {
+        menuPrincipal.style.display = '';
+        seccionEscanear.style.display = 'none';
+        seccionGenerar.style.display = 'none';
+        seccionListado.style.display = 'none';
       });
     }
   });
@@ -250,17 +247,33 @@
     // Log en consola (requisito)
     console.log('QR decodificado:', decodedText);
 
-    // Llamada real al backend
-    registerAttendance(decodedText)
+    // Parsear datos del QR (esperamos JSON con matricula, nombre, apellido, grupo)
+    let qrData;
+    try {
+      qrData = JSON.parse(decodedText);
+    } catch (e) {
+      console.error('Error parseando QR:', e);
+      showResult(decodedText, { ok: false, mensaje: 'Formato de QR inválido' });
+      return;
+    }
+
+    if (!qrData.matricula) {
+      console.error('QR no contiene matricula');
+      showResult(decodedText, { ok: false, mensaje: 'QR no contiene matrícula válida' });
+      return;
+    }
+
+    // Llamada real al backend con la matricula
+    registerAttendance(qrData.matricula)
       .then(response => {
         // Mostrar en UI
-        showResult(decodedText, response);
+        showResult(qrData, response);
         // Añadir al historial
-        addToHistory(decodedText, response);
+        addToHistory(qrData, response);
       })
       .catch(err => {
         console.error('Error en petición al backend:', err);
-        showResult(decodedText, { ok: false, mensaje: 'Error de conexión con el servidor' });
+        showResult(qrData, { ok: false, mensaje: 'Error de conexión con el servidor' });
       });
   }
 
@@ -443,19 +456,19 @@
   }
 
   // Muestra resultado en la tarjeta principal
-  function showResult(qrText, response) {
+  function showResult(qrData, response) {
     resultCard.classList.remove('empty');
     resultCard.innerHTML = ''; // limpiamos
 
     const title = document.createElement('div');
     title.className = 'result-name';
     const alumno = response.alumno || {};
-    title.textContent = `${alumno.nombre || '—'} ${alumno.apellido || ''}`.trim();
+    title.textContent = `${alumno.nombre || qrData.nombre || '—'} ${alumno.apellido || qrData.apellido || ''}`.trim();
 
     const idLine = document.createElement('div');
     idLine.style.fontSize = '0.9rem';
     idLine.style.color = 'var(--muted)';
-    idLine.textContent = `ID escaneado: ${qrText}`;
+    idLine.textContent = `ID escaneado: ${qrData.matricula || qrData}`;
 
     const state = document.createElement('div');
     state.className = 'result-state';
@@ -483,11 +496,11 @@
   }
 
   // Añade el evento al historial visible
-  function addToHistory(qrText, response) {
+  function addToHistory(qrData, response) {
     const li = document.createElement('li');
     const time = new Date().toLocaleTimeString();
     const alumno = response.alumno || {};
-    li.textContent = `${time} — ${qrText} — ${alumno.nombre || 'Desconocido'} ${alumno.apellido || ''} — ${alumno.estado || ''}`;
+    li.textContent = `${time} — ${qrData.matricula || qrData} — ${alumno.nombre || qrData.nombre || 'Desconocido'} ${alumno.apellido || qrData.apellido || ''} — ${alumno.estado || ''}`;
     historyList.prepend(li);
 
     // Limita el historial a 30 entradas
@@ -560,11 +573,22 @@
   function initializeApp() {
     // Verificar autenticación al cargar
     if (!checkAuthentication()) {
-      showLoginForm();
+      // Mostrar sección de lista directamente sin login para pruebas
+      showAttendanceListDirectly();
     } else {
       // Obtener estadísticas si está autenticado
       logStats();
     }
+  }
+
+  // Función para mostrar la lista de asistencia directamente sin login
+  function showAttendanceListDirectly() {
+    loginContainer.style.display = 'none';
+    mainApp.style.display = 'grid';
+    // Ocultar menú principal y mostrar solo la sección de lista
+    document.getElementById('menuPrincipal').style.display = 'none';
+    document.getElementById('seccionListado').style.display = '';
+    loadAttendanceList();
   }
 
   // Función para cargar la lista de asistencia

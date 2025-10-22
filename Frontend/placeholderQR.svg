@@ -1,0 +1,17 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer black border -->
+  <rect width="200" height="200" fill="black"/>
+  <!-- Inner gray square -->
+  <rect x="10" y="10" width="180" height="180" fill="#9ca3af"/>
+  <!-- QR-like pattern: top-left -->
+  <rect x="20" y="20" width="40" height="40" fill="black"/>
+  <rect x="30" y="30" width="20" height="20" fill="white"/>
+  <!-- Top-right -->
+  <rect x="140" y="20" width="40" height="40" fill="black"/>
+  <rect x="150" y="30" width="20" height="20" fill="white"/>
+  <!-- Bottom-left -->
+  <rect x="20" y="140" width="40" height="40" fill="black"/>
+  <rect x="30" y="150" width="20" height="20" fill="white"/>
+  <!-- Question mark in center -->
+  <text x="100" y="120" font-family="Arial, sans-serif" font-size="100" fill="black" text-anchor="middle" font-weight="bold">?</text>
+</svg>

@@ -18,6 +18,12 @@
   <div id="loginContainer" class="login-container">
     <div class="login-card">
       <div class="login-header">
+        <div class="login-icon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="8" r="3" stroke="var(--accent)" stroke-width="2" fill="var(--accent2)" opacity="0.8"/>
+            <path d="M12 14c-4 0-7 2-7 4v1h14v-1c0-2-3-4-7-4z" stroke="var(--accent)" stroke-width="2" fill="var(--accent2)" opacity="0.8"/>
+          </svg>
+        </div>
         <h1>Control de Asistia</h1>
         <p class="login-subtitle">Inicia sesión para acceder al sistema</p>
       </div>
@@ -67,7 +73,7 @@
       <div class="menu-btns">
         <button id="btnIrEscanear" class="menu-btn-grande">Escanear QR</button>
         <button id="btnIrGenerar" class="menu-btn-grande">Generar QR</button>
-        <button id="btnIrLista" class="menu-btn-grande">Lista de Asistencia</button>
+        <button id="btnIrLista" class="menu-btn-grande">Lista</button>
       </div>
       <button id="logoutBtn" class="logout-btn" title="Cerrar sesión" style="margin-top:40px;">Cerrar Sesión</button>
     </section>
@@ -120,55 +126,60 @@
 
     <!-- Sección Generar QR (inicialmente oculta) -->
     <section id="seccionGenerar" style="display:none;">
+      <h1>Generar QR para Alumno</h1>
       <div class="qr-form-container">
-        <h1>Generar QR para Alumno</h1>
         <div class="qr-form-card">
           <form id="formAlumno">
-            <label for="nombre">Nombre completo</label>
+            <label for="nombre">Nombre</label>
             <input type="text" id="nombre" required>
+            <label for="apellido">Apellido</label>
+            <input type="text" id="apellido" required>
             <label for="matricula">Matrícula</label>
             <input type="text" id="matricula" required>
-            <label for="grupo">Grupo</label>
-            <input type="text" id="grupo" required>
-            <button type="submit">Generar QR</button>
+        <label for="grupo">Grupo</label>
+        <input type="text" id="grupo" required>
+        <button type="submit">Generar QR</button>
           </form>
         </div>
         <div class="qr-result-card">
           <div id="resultado" class="resultado">
-            <h2>Código QR generado</h2>
-            <img id="qrImagen" src="" alt="QR del alumno" hidden>
-            <a id="descargarQR" class="btn" href="" download="alumno_qr.png" hidden>Descargar QR</a>
-            <button id="generarNuevoQR" class="btn" hidden>Generar Nuevo QR</button>
+            <div class="qr-display">
+              <img id="qrImagen" src="placeholderQR.svg" alt="QR del alumno">
+            </div>
+            <div class="qr-buttons">
+              <a id="descargarQR" class="btn" href="" download="alumno_qr.png" hidden>Descargar QR</a>
+              <button id="generarNuevoQR" class="btn" hidden>Nuevo QR</button>
+              <button id="btnVolverMenuGenerar" class="btn">Volver al menú</button>
+            </div>
           </div>
-
         </div>
-      <div style="text-align:center; margin: 32px 0 0 0;">
-        <button id="btnVolverMenuGenerar" class="volver-menu-btn">Volver al menú principal</button>
       </div>
-    <!-- Sección Lista de Asistencia (inicialmente oculta) -->
-    <section id="seccionLista" style="display:none;">
+    </section>
+
+    <!-- Sección Lista de Asistencias (inicialmente oculta) -->
+    <section id="seccionListado" style="display:none;">
+      <h1>Lista de Asistencias</h1>
       <div class="attendance-list-container">
-        <h1>Lista de Asistencia</h1>
-        <div class="stats-summary">
+        <div class="attendance-stats">
           <div class="stat-card">
-            <h3>Total Alumnos</h3>
-            <span id="totalAlumnos">-</span>
+            <span class="stat-number" id="totalAlumnos">0</span>
+            <span class="stat-label">Total Alumnos</span>
           </div>
           <div class="stat-card">
-            <h3>Presentes</h3>
-            <span id="totalPresentes">-</span>
+            <span class="stat-number" id="totalPresentes">0</span>
+            <span class="stat-label">Presentes</span>
           </div>
           <div class="stat-card">
-            <h3>Ausentes</h3>
-            <span id="totalAusentes">-</span>
+            <span class="stat-number" id="totalAusentes">0</span>
+            <span class="stat-label">Ausentes</span>
           </div>
           <div class="stat-card">
-            <h3>Tarde</h3>
-            <span id="totalTarde">-</span>
+            <span class="stat-number" id="totalTarde">0</span>
+            <span class="stat-label">Tarde</span>
           </div>
         </div>
         <div class="attendance-table-container">
-          <table id="attendanceTable" class="attendance-table">
+          <table class="attendance-table">
             <thead>
               <tr>
                 <th>ID</th>
@@ -184,11 +195,12 @@
             </tbody>
           </table>
         </div>
-        <div style="text-align:center; margin: 32px 0 0 0;">
-          <button id="btnVolverMenuLista" class="volver-menu-btn">Volver al menú principal</button>
-        </div>
+      </div>
+      <div style="text-align:center; margin: 32px 0 0 0;">
+        <button id="btnVolverMenuListado" class="volver-menu-btn">Volver al menú principal</button>
       </div>
     </section>
+
   </main>
 </body>
 </html>

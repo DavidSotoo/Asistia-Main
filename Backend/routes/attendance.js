@@ -83,4 +83,47 @@ router.put('/student/:id/status', async (req, res) => {
   }
 });
 
+// CRUD endpoints para alumnos
+router.get('/alumnos', async (req, res) => {
+  try {
+    const result = await attendanceService.getAllStudents();
+    res.json(result);
+  } catch (error) {
+    console.error('Error en /api/alumnos:', error);
+    res.status(500).json({
+      ok: false,
+      mensaje: "Error interno del servidor",
+    });
+  }
+});
+
+router.put('/alumnos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nombre, apellido, grupo } = req.body;
+    const result = await attendanceService.updateStudent(id, { nombre, apellido, grupo });
+    res.json(result);
+  } catch (error) {
+    console.error('Error actualizando alumno:', error);
+    res.status(500).json({
+      ok: false,
+      mensaje: "Error interno del servidor",
+    });
+  }
+});
+
+router.delete('/alumnos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await attendanceService.deleteStudent(id);
+    res.json(result);
+  } catch (error) {
+    console.error('Error eliminando alumno:', error);
+    res.status(500).json({
+      ok: false,
+      mensaje: "Error interno del servidor",
+    });
+  }
+});
+
 module.exports = router;

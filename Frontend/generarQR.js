@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById("formAlumno");
   const generarNuevoQRBtn = document.getElementById("generarNuevoQR");
   const nombreInput = document.getElementById("nombre");
+  const apellidoInput = document.getElementById("apellido");
   const matriculaInput = document.getElementById("matricula");
   const grupoInput = document.getElementById("grupo");
   if (!form) return;
@@ -10,8 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Función para resetear el formulario y ocultar elementos
   function resetForm() {
     form.reset();
-    document.getElementById("qrImagen").src = "";
-    document.getElementById("qrImagen").hidden = true;
+    document.getElementById("qrImagen").src = "placeholderQR.svg";
+    document.getElementById("qrImagen").hidden = false;
     document.getElementById("descargarQR").href = "";
     document.getElementById("descargarQR").hidden = true;
     generarNuevoQRBtn.hidden = true;
@@ -46,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Aplicar validaciones en tiempo real
   validateInput(nombreInput, /[^a-zA-Z\s]/g, "Solo se permiten letras y espacios en el nombre.");
+  validateInput(apellidoInput, /[^a-zA-Z\s]/g, "Solo se permiten letras y espacios en el apellido.");
   validateInput(matriculaInput, /[^0-9]/g, "Solo se permiten números en la matrícula.");
   validateInput(grupoInput, /[^a-zA-Z0-9\s]/g, "Solo se permiten letras, números y espacios en el grupo.");
 
@@ -53,12 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
 
     const nombre = document.getElementById("nombre").value.trim();
+    const apellido = document.getElementById("apellido").value.trim();
     const matricula = document.getElementById("matricula").value.trim();
     const grupo = document.getElementById("grupo").value.trim();
     const mensaje = document.getElementById("mensaje");
 
     // Validación frontend
-    if (!nombre || !matricula || !grupo) {
+    if (!nombre || !apellido || !matricula || !grupo) {
       mensaje.textContent = "⚠️ Todos los campos son obligatorios.";
       mensaje.style.color = "red";
       return;
@@ -68,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const respuesta = await fetch("http://localhost:3000/generarQR", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre, matricula, grupo })
+        body: JSON.stringify({ nombre, apellido, matricula, grupo })
       });
 
       const data = await respuesta.json();
