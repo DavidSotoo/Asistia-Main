@@ -7,46 +7,84 @@
   // --- Menú principal: navegación entre pantallas ---
   document.addEventListener('DOMContentLoaded', () => {
     const menuPrincipal = document.getElementById('menuPrincipal');
+    const menuMaestro = document.getElementById('menuMaestro');
     const btnIrEscanear = document.getElementById('btnIrEscanear');
     const btnIrGenerar = document.getElementById('btnIrGenerar');
     const btnIrLista = document.getElementById('btnIrLista');
+    const btnCrearMaestro = document.getElementById('btnCrearMaestro');
+    const btnMaestroEscanear = document.getElementById('btnMaestroEscanear');
+    const btnMaestroGenerar = document.getElementById('btnMaestroGenerar');
+    const btnMaestroLista = document.getElementById('btnMaestroLista');
     const seccionEscanear = document.getElementById('seccionEscanear');
     const seccionGenerar = document.getElementById('seccionGenerar');
     const seccionListado = document.getElementById('seccionListado');
+    const seccionCrearMaestro = document.getElementById('seccionCrearMaestro');
     const logoutBtn = document.getElementById('logoutBtn');
+    const logoutBtnMaestro = document.getElementById('logoutBtnMaestro');
     const btnVolverMenuEscanear = document.getElementById('btnVolverMenuEscanear');
     const btnVolverMenuGenerar = document.getElementById('btnVolverMenuGenerar');
     const btnVolverMenuListado = document.getElementById('btnVolverMenuListado');
+    const btnVolverMenuCrearMaestro = document.getElementById('btnVolverMenuCrearMaestro');
+
+    // Función para ocultar todas las secciones
+    const hideAllSections = () => {
+      if (menuPrincipal) menuPrincipal.style.display = 'none';
+      if (menuMaestro) menuMaestro.style.display = 'none';
+      if (seccionEscanear) seccionEscanear.style.display = 'none';
+      if (seccionGenerar) seccionGenerar.style.display = 'none';
+      if (seccionListado) seccionListado.style.display = 'none';
+      if (seccionCrearMaestro) seccionCrearMaestro.style.display = 'none';
+    };
 
     // Mostrar solo el menú principal al inicio
     if (menuPrincipal && seccionEscanear && seccionGenerar && seccionListado) {
+      hideAllSections();
       menuPrincipal.style.display = '';
-      seccionEscanear.style.display = 'none';
-      seccionGenerar.style.display = 'none';
-      seccionListado.style.display = 'none';
     }
 
     if (btnIrEscanear) {
       btnIrEscanear.addEventListener('click', () => {
-        menuPrincipal.style.display = 'none';
+        hideAllSections();
         seccionEscanear.style.display = '';
-        seccionGenerar.style.display = 'none';
-        seccionListado.style.display = 'none';
       });
     }
     if (btnIrGenerar) {
       btnIrGenerar.addEventListener('click', () => {
-        menuPrincipal.style.display = 'none';
-        seccionEscanear.style.display = 'none';
+        hideAllSections();
         seccionGenerar.style.display = '';
-        seccionListado.style.display = 'none';
       });
     }
     if (btnIrLista) {
       btnIrLista.addEventListener('click', () => {
-        menuPrincipal.style.display = 'none';
-        seccionEscanear.style.display = 'none';
-        seccionGenerar.style.display = 'none';
+        hideAllSections();
+        seccionListado.style.display = '';
+        loadAttendanceList();
+      });
+    }
+    if (btnCrearMaestro) {
+      btnCrearMaestro.addEventListener('click', () => {
+        hideAllSections();
+        seccionCrearMaestro.style.display = '';
+        loadTeachersList();
+      });
+    }
+    if (btnMaestroEscanear) {
+      btnMaestroEscanear.addEventListener('click', () => {
+        hideAllSections();
+        seccionEscanear.style.display = '';
+        // Marcar que estamos en modo maestro para controlar la navegación
+        window.isTeacherMode = true;
+      });
+    }
+    if (btnMaestroGenerar) {
+      btnMaestroGenerar.addEventListener('click', () => {
+        hideAllSections();
+        seccionGenerar.style.display = '';
+      });
+    }
+    if (btnMaestroLista) {
+      btnMaestroLista.addEventListener('click', () => {
+        hideAllSections();
         seccionListado.style.display = '';
         loadAttendanceList();
       });
@@ -54,38 +92,34 @@
 
     // Botón cerrar sesión: regresa al menú principal
     if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
-        menuPrincipal.style.display = '';
-        seccionEscanear.style.display = 'none';
-        seccionGenerar.style.display = 'none';
-        seccionListado.style.display = 'none';
-      });
+      logoutBtn.addEventListener('click', handleLogout);
     }
+    if (logoutBtnMaestro) {
+      logoutBtnMaestro.addEventListener('click', handleLogout);
+    }
+
+    // Función para mostrar el menú principal según el rol del usuario
+    const showMainMenu = () => {
+      hideAllSections();
+      if (currentUser && currentUser.role === 'maestro') {
+        menuMaestro.style.display = '';
+      } else {
+        menuPrincipal.style.display = '';
+      }
+    };
 
     // Botones para volver al menú principal desde cada sección
     if (btnVolverMenuEscanear) {
-      btnVolverMenuEscanear.addEventListener('click', () => {
-        menuPrincipal.style.display = '';
-        seccionEscanear.style.display = 'none';
-        seccionGenerar.style.display = 'none';
-        seccionListado.style.display = 'none';
-      });
+      btnVolverMenuEscanear.addEventListener('click', showMainMenu);
     }
     if (btnVolverMenuGenerar) {
-      btnVolverMenuGenerar.addEventListener('click', () => {
-        menuPrincipal.style.display = '';
-        seccionEscanear.style.display = 'none';
-        seccionGenerar.style.display = 'none';
-        seccionListado.style.display = 'none';
-      });
+      btnVolverMenuGenerar.addEventListener('click', showMainMenu);
     }
     if (btnVolverMenuListado) {
-      btnVolverMenuListado.addEventListener('click', () => {
-        menuPrincipal.style.display = '';
-        seccionEscanear.style.display = 'none';
-        seccionGenerar.style.display = 'none';
-        seccionListado.style.display = 'none';
-      });
+      btnVolverMenuListado.addEventListener('click', showMainMenu);
+    }
+    if (btnVolverMenuCrearMaestro) {
+      btnVolverMenuCrearMaestro.addEventListener('click', showMainMenu);
     }
   });
   // Configuración del backend
@@ -289,21 +323,7 @@
 
   // Funciones de autenticación
   function checkAuthentication() {
-    const savedToken = localStorage.getItem('asistia_auth_token');
-    const savedUser = localStorage.getItem('asistia_user');
-    
-    if (savedToken && savedUser) {
-      try {
-        authToken = savedToken;
-        currentUser = JSON.parse(savedUser);
-        isAuthenticated = true;
-        showMainApp();
-        return true;
-      } catch (e) {
-        localStorage.removeItem('asistia_auth_token');
-        localStorage.removeItem('asistia_user');
-      }
-    }
+    // Siempre mostrar formulario de login al refrescar la página
     return false;
   }
 
@@ -319,6 +339,21 @@
     loginContainer.style.display = 'none';
     mainApp.style.display = 'grid';
     isAuthenticated = true;
+    
+    // Mostrar el menú correcto según el rol del usuario
+    if (currentUser && currentUser.role === 'maestro') {
+      document.getElementById('menuMaestro').style.display = '';
+      document.getElementById('menuPrincipal').style.display = 'none';
+    } else {
+      document.getElementById('menuPrincipal').style.display = '';
+      document.getElementById('menuMaestro').style.display = 'none';
+      
+      // Mostrar botón de crear maestro solo para admin
+      const btnCrearMaestro = document.getElementById('btnCrearMaestro');
+      if (btnCrearMaestro && currentUser && currentUser.role === 'admin') {
+        btnCrearMaestro.style.display = '';
+      }
+    }
   }
 
   async function handleLogin(event) {
@@ -511,36 +546,46 @@
 
   // Botones
   // Event listeners para autenticación
-  loginForm.addEventListener('submit', handleLogin);
-  logoutBtn.addEventListener('click', handleLogout);
+  if (loginForm) {
+    loginForm.addEventListener('submit', handleLogin);
+  }
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', handleLogout);
+  }
 
   // Botones del QR scanner
-  startBtn.addEventListener('click', startCamera);
-  stopBtn.addEventListener('click', stopCamera);
+  if (startBtn) {
+    startBtn.addEventListener('click', startCamera);
+  }
+  if (stopBtn) {
+    stopBtn.addEventListener('click', stopCamera);
+  }
 
   // Intento de usar linterna/torch si el dispositivo lo soporta
-  torchToggle.addEventListener('change', async (e) => {
-    const enabled = e.target.checked;
-    if (!streamingStream) {
-      alert('Primero inicia la cámara para usar la linterna.');
-      torchToggle.checked = false;
-      return;
-    }
-    const videoTrack = streamingStream.getVideoTracks()[0];
-    const capabilities = videoTrack.getCapabilities();
-    if (!capabilities.torch) {
-      alert('Este dispositivo no soporta linterna/torch a través de la API.');
-      torchToggle.checked = false;
-      return;
-    }
-    try {
-      await videoTrack.applyConstraints({ advanced: [{ torch: enabled }] });
-    } catch (err) {
-      console.warn('No fue posible cambiar la linterna:', err);
-      alert('No se pudo activar la linterna en este dispositivo.');
-      torchToggle.checked = false;
-    }
-  });
+  if (torchToggle) {
+    torchToggle.addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      if (!streamingStream) {
+        alert('Primero inicia la cámara para usar la linterna.');
+        torchToggle.checked = false;
+        return;
+      }
+      const videoTrack = streamingStream.getVideoTracks()[0];
+      const capabilities = videoTrack.getCapabilities();
+      if (!capabilities.torch) {
+        alert('Este dispositivo no soporta linterna/torch a través de la API.');
+        torchToggle.checked = false;
+        return;
+      }
+      try {
+        await videoTrack.applyConstraints({ advanced: [{ torch: enabled }] });
+      } catch (err) {
+        console.warn('No fue posible cambiar la linterna:', err);
+        alert('No se pudo activar la linterna en este dispositivo.');
+        torchToggle.checked = false;
+      }
+    });
+  }
 
   // Función para obtener estadísticas del backend
   async function getAttendanceStats() {
@@ -573,8 +618,8 @@
   function initializeApp() {
     // Verificar autenticación al cargar
     if (!checkAuthentication()) {
-      // Mostrar sección de lista directamente sin login para pruebas
-      showAttendanceListDirectly();
+      // Mostrar formulario de login
+      showLoginForm();
     } else {
       // Obtener estadísticas si está autenticado
       logStats();
@@ -735,11 +780,213 @@
     }
   }
 
+  // Funciones para gestión de maestros
+  async function createTeacher(teacherData) {
+    try {
+      
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (!authToken) {
+        throw new Error('No hay token de autenticación');
+      }
+      
+      headers['Authorization'] = `Bearer ${authToken}`;
+
+      const response = await fetch(`${BACKEND_URL}/api/teachers/create`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(teacherData)
+      });
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error(`Error de autorización: ${response.status}`);
+        }
+        
+        const errorText = await response.text();
+        console.error('❌ Error en respuesta:', errorText);
+        throw new Error(`Error HTTP: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('❌ Error creando maestro:', error);
+      throw error;
+    }
+  }
+
+  async function loadTeachersList() {
+    try {
+      const headers = {};
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/teachers/list`, {
+        method: 'GET',
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.ok) {
+        renderTeachersList(data.data);
+      } else {
+        console.error('Error obteniendo lista de maestros:', data.mensaje);
+        alert('Error al cargar la lista de maestros');
+      }
+    } catch (error) {
+      console.error('Error cargando lista de maestros:', error);
+      alert('Error de conexión con el servidor');
+    }
+  }
+
+  function renderTeachersList(teachers) {
+    const teachersList = document.getElementById('teachersList');
+    teachersList.innerHTML = '';
+
+    if (teachers.length === 0) {
+      teachersList.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No hay maestros registrados</p>';
+      return;
+    }
+
+    teachers.forEach(teacher => {
+      const teacherItem = document.createElement('div');
+      teacherItem.className = 'teacher-item';
+
+      teacherItem.innerHTML = `
+        <div class="teacher-info">
+          <div class="teacher-name">${teacher.name}</div>
+          <div class="teacher-details">
+            Usuario: ${teacher.username}
+            ${teacher.email ? ` | Email: ${teacher.email}` : ''}
+            <br>
+            Creado: ${new Date(teacher.createdAt).toLocaleDateString()}
+          </div>
+        </div>
+        <div class="teacher-actions">
+          <button class="btn btn-small btn-danger" onclick="deleteTeacher('${teacher.id}')">Eliminar</button>
+        </div>
+      `;
+
+      teachersList.appendChild(teacherItem);
+    });
+  }
+
+  async function deleteTeacher(teacherId) {
+    if (!confirm('¿Estás seguro de que quieres eliminar este maestro?')) {
+      return;
+    }
+
+    try {
+      const headers = {};
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/teachers/${teacherId}`, {
+        method: 'DELETE',
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.ok) {
+        alert('Maestro eliminado exitosamente');
+        loadTeachersList(); // Recargar la lista
+      } else {
+        console.error('Error eliminando maestro:', data.mensaje);
+        alert('Error al eliminar el maestro');
+      }
+    } catch (error) {
+      console.error('Error eliminando maestro:', error);
+      alert('Error de conexión con el servidor');
+    }
+  }
+
+  // Hacer funciones globales para que puedan ser llamadas desde HTML
+  window.deleteTeacher = deleteTeacher;
+
+  // Event listener para el formulario de crear maestro
+  function setupTeacherFormListener() {
+    const formCrearMaestro = document.getElementById('formCrearMaestro');
+    
+    if (formCrearMaestro) {
+      // Remover listener anterior si existe
+      formCrearMaestro.removeEventListener('submit', handleTeacherFormSubmit);
+      // Agregar nuevo listener
+      formCrearMaestro.addEventListener('submit', handleTeacherFormSubmit);
+    }
+  }
+
+  // Función para manejar el envío del formulario
+  async function handleTeacherFormSubmit(event) {
+    event.preventDefault();
+    
+    
+    // Verificar que hay token de autenticación
+    if (!authToken) {
+      alert('Error: No hay sesión activa. Por favor, inicia sesión nuevamente.');
+      handleLogout();
+      return;
+    }
+    
+    const formCrearMaestro = event.target;
+    const formData = new FormData(formCrearMaestro);
+    const teacherData = {
+      username: formData.get('username'),
+      password: formData.get('password'),
+      name: formData.get('name'),
+      email: formData.get('email') || null
+    };
+
+    // Validar datos requeridos
+    if (!teacherData.username || !teacherData.password || !teacherData.name) {
+      alert('Por favor, completa todos los campos requeridos.');
+      return;
+    }
+
+    try {
+      const response = await createTeacher(teacherData);
+      
+      if (response.ok) {
+        alert('Maestro creado exitosamente');
+        formCrearMaestro.reset();
+        loadTeachersList(); // Recargar la lista
+      } else {
+        alert(response.mensaje || 'Error al crear el maestro');
+      }
+    } catch (error) {
+      console.error('❌ Error creando maestro:', error);
+      if (error.message.includes('401') || error.message.includes('403')) {
+        alert('Error de autorización. Por favor, inicia sesión nuevamente.');
+        handleLogout();
+      } else {
+        alert('Error de conexión con el servidor');
+      }
+    }
+  }
+
   // Inicializar cuando el DOM esté listo
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApp);
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeApp();
+      setupTeacherFormListener();
+    });
   } else {
     initializeApp();
+    setupTeacherFormListener();
   }
 
   // FIN del IIFE

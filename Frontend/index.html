@@ -74,8 +74,21 @@
         <button id="btnIrEscanear" class="menu-btn-grande">Escanear QR</button>
         <button id="btnIrGenerar" class="menu-btn-grande">Generar QR</button>
         <button id="btnIrLista" class="menu-btn-grande">Lista</button>
+        <!-- Botón para crear maestros (solo visible para admin) -->
+        <button id="btnCrearMaestro" class="menu-btn-grande admin-only" style="display:none;">Crear Maestro</button>
       </div>
       <button id="logoutBtn" class="logout-btn" title="Cerrar sesión" style="margin-top:40px;">Cerrar Sesión</button>
+    </section>
+
+    <!-- Menú específico para maestros -->
+    <section id="menuMaestro" class="menu-principal" style="display:none;">
+      <h1 class="menu-title">Panel del Maestro</h1>
+      <div class="menu-btns">
+        <button id="btnMaestroEscanear" class="menu-btn-grande">Escanear QR</button>
+        <button id="btnMaestroGenerar" class="menu-btn-grande">Generar QR</button>
+        <button id="btnMaestroLista" class="menu-btn-grande">Ver Asistencias</button>
+      </div>
+      <button id="logoutBtnMaestro" class="logout-btn" title="Cerrar sesión" style="margin-top:40px;">Cerrar Sesión</button>
     </section>
 
     <!-- Sección Escanear QR (inicialmente oculta) -->
@@ -198,6 +211,49 @@
       </div>
       <div style="text-align:center; margin: 32px 0 0 0;">
         <button id="btnVolverMenuListado" class="volver-menu-btn">Volver al menú principal</button>
+      </div>
+    </section>
+
+    <!-- Sección Crear Maestro (inicialmente oculta) -->
+    <section id="seccionCrearMaestro" style="display:none;">
+      <h1>Crear Nuevo Maestro</h1>
+      <div class="teacher-form-container">
+        <div class="teacher-form-card">
+          <form id="formCrearMaestro">
+            <div class="form-group">
+              <label for="maestroUsername">Nombre de Usuario</label>
+              <input type="text" id="maestroUsername" name="username" required placeholder="Ingresa el nombre de usuario">
+            </div>
+            
+            <div class="form-group">
+              <label for="maestroPassword">Contraseña</label>
+              <input type="password" id="maestroPassword" name="password" required placeholder="Ingresa la contraseña">
+            </div>
+            
+            <div class="form-group">
+              <label for="maestroName">Nombre Completo</label>
+              <input type="text" id="maestroName" name="name" required placeholder="Ingresa el nombre completo">
+            </div>
+            
+            <div class="form-group">
+              <label for="maestroEmail">Email (Opcional)</label>
+              <input type="email" id="maestroEmail" name="email" placeholder="Ingresa el email">
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Crear Maestro</button>
+          </form>
+        </div>
+        
+        <div class="teachers-list-container">
+          <h2>Lista de Maestros</h2>
+          <div id="teachersList" class="teachers-list">
+            <!-- Los maestros se cargarán dinámicamente -->
+          </div>
+        </div>
+      </div>
+      
+      <div style="text-align:center; margin: 32px 0 0 0;">
+        <button id="btnVolverMenuCrearMaestro" class="volver-menu-btn">Volver al menú principal</button>
       </div>
     </section>
 

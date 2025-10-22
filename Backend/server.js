@@ -13,6 +13,7 @@ const databaseService = require('./services/databaseService');
 // Importar rutas
 const attendanceRoutes = require('./routes/attendance');
 const authRoutes = require('./routes/auth');
+const teachersRoutes = require('./routes/teachers');
 
 // QRCode para generar QR
 const QRCode = require('qrcode');
@@ -120,6 +121,7 @@ app.post('/generarQR', async (req, res) => {
 // Rutas de la API
 app.use('/api', attendanceRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/teachers', teachersRoutes);
 
 // Middleware de manejo de errores
 app.use(notFound);

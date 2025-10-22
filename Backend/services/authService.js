@@ -112,6 +112,7 @@ class AuthService {
           username: userData.username,
           password: userData.password,
           name: userData.name,
+          email: userData.email || null,
           role: userData.role || 'operador'
         }
       });
@@ -166,6 +167,7 @@ class AuthService {
           id: true,
           username: true,
           name: true,
+          email: true,
           role: true,
           createdAt: true,
           updatedAt: true
