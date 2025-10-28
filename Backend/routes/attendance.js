@@ -83,10 +83,52 @@ router.put('/student/:id/status', async (req, res) => {
   }
 });
 
+// Nuevo endpoint: exportar a CSV
+router.get('/export/csv', async (req, res) => {
+  try {
+    const result = await attendanceService.exportToCSV();
+
+    if (!result.ok) {
+      return res.status(500).json({
+        ok: false,
+        mensaje: "Error generando CSV"
+      });
+    }
+
+    // Configurar headers para descarga de archivo
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+
+    // Enviar el CSV
+    res.send('\ufeff' + result.csv); // BOM para compatibilidad con Excel
+  } catch (error) {
+    console.error('Error en /api/export/csv:', error);
+    res.status(500).json({
+      ok: false,
+      mensaje: "Error interno del servidor",
+    });
+  }
+});
+
+// Nuevo endpoint: mensaje de bienvenida con logging
+router.get('/welcome', async (req, res) => {
+  try {
+    // Log request metadata
+    console.log(`Request received: ${req.method} ${req.path}`);
+    res.json({ message: 'Welcome to the Asistia API Service!' });
+  } catch (error) {
+    console.error('Error en /api/welcome:', error);
+    res.status(500).json({
+      ok: false,
+      mensaje: "Error interno del servidor",
+    });
+  }
+});
+
 // CRUD endpoints para alumnos
 router.get('/alumnos', async (req, res) => {
   try {
-    const result = await attendanceService.getAllStudents();
+    const result = await attendanceService.getAllStudentsWithQR();
     res.json(result);
   } catch (error) {
     console.error('Error en /api/alumnos:', error);

@@ -1156,6 +1156,14 @@ video {
 	letter-spacing: 0.5px;
 }
 
+.table-actions {
+	display: flex;
+	justify-content: flex-end;
+	margin-bottom: 24px;
+	padding: 16px 0;
+	border-bottom: 1px solid #25304a;
+}
+
 .attendance-table-container {
 	overflow-x: auto;
 	border-radius: 12px;
@@ -1274,10 +1282,124 @@ video {
 	font-size: 0.8rem;
 }
 
+/* ===== STUDENTS CARDS SECTION ===== */
+.students-list-container {
+	background: var(--card);
+	border-radius: 18px;
+	box-shadow: var(--shadow);
+	color: var(--text);
+	max-width: 1200px;
+	width: 100%;
+	margin: 0 auto 24px auto;
+	padding: 32px 28px 28px 28px;
+}
+
+.students-cards-container {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: 24px;
+	margin-top: 24px;
+}
+
+.student-card {
+	background: #10192b;
+	border-radius: 16px;
+	padding: 24px;
+	box-shadow: 0 4px 16px rgba(14,165,164,0.1);
+	border: 1px solid #25304a;
+	transition: all 0.3s ease;
+	position: relative;
+	overflow: hidden;
+}
+
+.student-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+
+.student-card:hover {
+	transform: translateY(-4px);
+	box-shadow: 0 12px 32px rgba(14,165,164,0.2);
+	border-color: var(--accent);
+}
+
+.student-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 16px;
+}
+
+.student-id {
+	font-size: 0.9rem;
+	color: var(--muted);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.student-name {
+	font-size: 1.4rem;
+	font-weight: 700;
+	color: var(--accent);
+	margin-bottom: 4px;
+	text-shadow: 0 2px 8px rgba(14,165,164,0.3);
+}
+
+.student-lastname {
+	font-size: 1.1rem;
+	color: var(--text);
+	margin-bottom: 8px;
+}
+
+.student-group {
+	display: inline-block;
+	background: linear-gradient(135deg, var(--accent), var(--accent2));
+	color: #fff;
+	padding: 4px 12px;
+	border-radius: 20px;
+	font-size: 0.85rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 16px;
+}
+
+.student-qr-container {
+	text-align: center;
+	margin-top: 16px;
+}
+
+.student-qr-label {
+	font-size: 0.9rem;
+	color: var(--muted);
+	margin-bottom: 8px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.student-qr-image {
+	width: 120px;
+	height: 120px;
+	border-radius: 12px;
+	box-shadow: 0 4px 12px rgba(14,165,164,0.15);
+	transition: transform 0.3s ease;
+}
+
+.student-qr-image:hover {
+	transform: scale(1.05);
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 600px) {
 	h1, .main-title { font-size: 1.2rem; }
-	.card, .scanner-card, .form-card, .qr-form-card, .results, .history, .attendance-list-container { padding: 10px 4px; border-radius: 10px; }
+	.card, .scanner-card, .form-card, .qr-form-card, .results, .history, .attendance-list-container, .students-list-container { padding: 10px 4px; border-radius: 10px; }
 	.qr-result-card { padding: 10px 4px; border-radius: 10px; height: auto; }
 	.btn, .btn-lg { font-size: 1rem; padding: 14px 0; border-radius: 10px; }
 	.stats-summary { grid-template-columns: 1fr; }
@@ -1305,9 +1427,27 @@ video {
 		max-width: 300px;
 		min-width: auto;
 	}
+	/* Students cards responsive */
+	.students-cards-container {
+		grid-template-columns: 1fr;
+		gap: 16px;
+	}
+	.student-card {
+		padding: 20px;
+	}
+	.student-name {
+		font-size: 1.2rem;
+	}
+	.student-lastname {
+		font-size: 1rem;
+	}
+	.student-qr-image {
+		width: 100px;
+		height: 100px;
+	}
 }
 @media (max-width: 800px) {
-	.card, .scanner-card, .form-card, .qr-form-card, .qr-result-card, .results, .history, .attendance-list-container { max-width: 98vw; }
+	.card, .scanner-card, .form-card, .qr-form-card, .qr-result-card, .results, .history, .attendance-list-container, .students-list-container { max-width: 98vw; }
 }
 @media (min-width: 801px) {
 	.qr-form-container {
@@ -1433,7 +1573,37 @@ video {
 }
 
 .btn-danger:hover {
-  background: linear-gradient(135deg, #ee5a52, #ff6b6b);
+	background: linear-gradient(135deg, #ee5a52, #ff6b6b);
+}
+
+/* ===== DELETE STUDENT BUTTON ===== */
+.btn-delete-student {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: auto;
+	min-height: 32px;
+	font-size: 0.9rem;
+	font-weight: 600;
+	padding: 0 12px;
+	border-radius: 8px;
+	background: rgba(239, 68, 68, 0.1);
+	color: #ef4444;
+	border: 2px solid rgba(239, 68, 68, 0.3);
+	box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15);
+	cursor: pointer;
+	letter-spacing: 0.01em;
+	transition: all 0.3s ease;
+	outline: none;
+	margin-left: auto;
+}
+
+.btn-delete-student:hover {
+	background: rgba(239, 68, 68, 0.2);
+	border-color: #ef4444;
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+	color: #dc2626;
 }
 
 /* Responsive para formulario de maestros */

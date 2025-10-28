@@ -5,7 +5,37 @@ const router = express.Router();
 const authService = require('../services/authService');
 const { authenticateToken } = require('../middleware/auth');
 
-// Middleware para verificar que el usuario es admin
+// Middleware para verificar que el usuario es admin o maestro
+const requireAdminOrTeacher = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({
+        ok: false,
+        mensaje: "Token requerido"
+      });
+    }
+
+    const decoded = authService.verifyToken(token);
+
+    if (decoded.role !== 'admin' && decoded.role !== 'maestro') {
+      return res.status(403).json({
+        ok: false,
+        mensaje: "Acceso denegado. Se requiere rol de administrador o maestro"
+      });
+    }
+
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      ok: false,
+      mensaje: "Token inválido"
+    });
+  }
+};
+
+// Middleware para verificar que el usuario es admin (solo para eliminación)
 const requireAdmin = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -17,7 +47,7 @@ const requireAdmin = async (req, res, next) => {
     }
 
     const decoded = authService.verifyToken(token);
-    
+
     if (decoded.role !== 'admin') {
       return res.status(403).json({
         ok: false,
@@ -35,8 +65,8 @@ const requireAdmin = async (req, res, next) => {
   }
 };
 
-// Crear nuevo maestro (solo admin)
-router.post('/create', requireAdmin, async (req, res) => {
+// Crear nuevo maestro (admin o maestro)
+router.post('/create', requireAdminOrTeacher, async (req, res) => {
   try {
     const { username, password, name, email } = req.body;
     
@@ -85,8 +115,8 @@ router.post('/create', requireAdmin, async (req, res) => {
   }
 });
 
-// Obtener lista de maestros (solo admin)
-router.get('/list', requireAdmin, async (req, res) => {
+// Obtener lista de maestros (admin o maestro)
+router.get('/list', requireAdminOrTeacher, async (req, res) => {
   try {
     const users = await authService.getAllUsers();
     

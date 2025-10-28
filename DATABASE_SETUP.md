@@ -9,7 +9,7 @@ El proyecto Asistia ahora usa **PostgreSQL** con **Prisma ORM** en lugar del arc
 ### 1. Iniciar la Base de Datos
 ```bash
 # Opción 1: Usar el script
-./db-start.sh
+./start.sh start
 
 # Opción 2: Comando directo
 docker-compose up -d

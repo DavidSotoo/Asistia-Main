@@ -9,24 +9,62 @@ class AttendanceService {
   }
 
   /**
+   * Exportar datos de asistencia a CSV
+   */
+  async exportToCSV() {
+    try {
+      const attendanceRecords = await this.getTodayAttendanceRecords();
+
+      // Crear contenido CSV
+      const csvHeaders = 'ID,Nombre,Apellido,Estado,Hora de Asistencia,Fecha\n';
+      const csvRows = attendanceRecords.map(record => {
+        const time = record.attendanceTime.toLocaleTimeString('es-ES', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        const date = record.attendanceDate.toLocaleDateString('es-ES');
+        return `${record.student.id},"${record.student.nombre}","${record.student.apellido}",${record.status},${time},${date}`;
+      });
+
+      const csv = csvHeaders + csvRows.join('\n');
+
+      // Generar nombre de archivo con fecha
+      const dateStr = this.getTodayDate().toISOString().split('T')[0];
+      const filename = `asistencia_${dateStr}.csv`;
+
+      return { ok: true, csv, filename };
+    } catch (error) {
+      console.error('Error generando CSV:', error);
+      throw new Error('Error interno al generar CSV');
+    }
+  }
+
+  /**
+   * Función auxiliar para obtener la fecha de hoy
+   */
+  getTodayDate() {
+    return new Date(new Date().toISOString().split('T')[0]);
+  }
+
+  /**
+   * Función auxiliar para obtener registros de asistencia de hoy
+   */
+  async getTodayAttendanceRecords() {
+    const today = this.getTodayDate();
+    return await this.prisma.attendance.findMany({
+      where: { attendanceDate: today },
+      include: { student: true },
+      orderBy: { attendanceTime: 'desc' }
+    });
+  }
+
+  /**
    * Leer estudiantes con asistencia registrada hoy desde la base de datos
    */
   async getAllStudents() {
     try {
-      const today = new Date(new Date().toISOString().split('T')[0]);
-
-      // Obtener registros de asistencia de hoy con información del estudiante
-      const attendanceRecords = await this.prisma.attendance.findMany({
-        where: {
-          attendanceDate: today
-        },
-        include: {
-          student: true
-        },
-        orderBy: {
-          attendanceTime: 'desc'
-        }
-      });
+      const attendanceRecords = await this.getTodayAttendanceRecords();
 
       // Transformar datos para mantener compatibilidad con el frontend
       const alumnos = attendanceRecords.map(record => ({
@@ -37,10 +75,7 @@ class AttendanceService {
         lastUpdated: record.attendanceTime.toISOString()
       }));
 
-      return {
-        ok: true,
-        alumnos
-      };
+      return { ok: true, alumnos };
     } catch (error) {
       console.error('Error leyendo la base de datos:', error);
       throw new Error('Error interno al leer la base de datos');
@@ -48,93 +83,84 @@ class AttendanceService {
   }
 
   /**
+   * Obtener todos los alumnos registrados con sus códigos QR
+   */
+  async getAllStudentsWithQR() {
+    try {
+      const students = await this.prisma.student.findMany({
+        orderBy: { nombre: 'asc' }
+      });
+
+      // Transformar datos incluyendo códigos QR
+      const alumnos = students.map(student => ({
+        id: student.id,
+        nombre: student.nombre,
+        apellido: student.apellido,
+        matricula: student.matricula,
+        grupo: student.grupo,
+        qrCode: student.id // Usar el ID como código QR
+      }));
+
+      return { ok: true, alumnos };
+    } catch (error) {
+      console.error('Error obteniendo todos los alumnos:', error);
+      throw new Error('Error interno al obtener alumnos');
+    }
+  }
+
+  /**
+   * Función auxiliar para crear objeto alumno
+   */
+  createAlumnoObject(student, status, lastUpdated) {
+    return {
+      id: student.id,
+      nombre: student.nombre,
+      apellido: student.apellido,
+      estado: status,
+      lastUpdated: lastUpdated.toISOString()
+    };
+  }
+
+  /**
    * Registrar asistencia de un estudiante
    */
   async registerAttendance(id) {
     try {
-      const student = await this.prisma.student.findUnique({
-        where: { id }
-      });
-
+      const student = await this.prisma.student.findUnique({ where: { id } });
       if (!student) {
-        return {
-          ok: false,
-          alumno: { nombre: "Error", estado: "No registrado" },
-        };
+        return { ok: false, alumno: { nombre: "Error", estado: "No registrado" } };
       }
 
-      const today = new Date(new Date().toISOString().split('T')[0]);
-
-      // Verificar si ya tiene asistencia registrada hoy
+      const today = this.getTodayDate();
       const existingAttendance = await this.prisma.attendance.findFirst({
-        where: {
-          studentId: id,
-          attendanceDate: today
-        }
+        where: { studentId: id, attendanceDate: today }
       });
 
       if (existingAttendance) {
         if (existingAttendance.status !== "Presente") {
-          // Actualizar estado a Presente
           await this.prisma.attendance.update({
             where: { id: existingAttendance.id },
-            data: {
-              status: "Presente",
-              attendanceTime: new Date()
-            }
+            data: { status: "Presente", attendanceTime: new Date() }
           });
-
-          const alumno = {
-            id: student.id,
-            nombre: student.nombre,
-            apellido: student.apellido,
-            estado: "Presente",
-            lastUpdated: new Date().toISOString()
-          };
-
-          return { 
-            ok: true, 
-            alumno,
+          return {
+            ok: true,
+            alumno: this.createAlumnoObject(student, "Presente", new Date()),
             mensaje: "Asistencia registrada exitosamente"
           };
         } else {
-          // Ya estaba presente
-          const alumno = {
-            id: student.id,
-            nombre: student.nombre,
-            apellido: student.apellido,
-            estado: "Presente",
-            lastUpdated: existingAttendance.attendanceTime.toISOString()
-          };
-
           return {
             ok: true,
-            alumno,
-            mensaje: "Alumno ya estaba marcado como presente",
+            alumno: this.createAlumnoObject(student, "Presente", existingAttendance.attendanceTime),
+            mensaje: "Alumno ya estaba marcado como presente"
           };
         }
       } else {
-        // Crear nuevo registro de asistencia
         await this.prisma.attendance.create({
-          data: {
-            studentId: id,
-            status: "Presente",
-            attendanceDate: today,
-            attendanceTime: new Date()
-          }
+          data: { studentId: id, status: "Presente", attendanceDate: today, attendanceTime: new Date() }
         });
-
-        const alumno = {
-          id: student.id,
-          nombre: student.nombre,
-          apellido: student.apellido,
-          estado: "Presente",
-          lastUpdated: new Date().toISOString()
-        };
-
-        return { 
-          ok: true, 
-          alumno,
+        return {
+          ok: true,
+          alumno: this.createAlumnoObject(student, "Presente", new Date()),
           mensaje: "Asistencia registrada exitosamente"
         };
       }
@@ -149,59 +175,28 @@ class AttendanceService {
    */
   async updateStudentStatus(id, status) {
     try {
-      const student = await this.prisma.student.findUnique({
-        where: { id }
-      });
+      const student = await this.prisma.student.findUnique({ where: { id } });
+      if (!student) return { ok: false, mensaje: "Estudiante no encontrado" };
 
-      if (!student) {
-        return {
-          ok: false,
-          mensaje: "Estudiante no encontrado"
-        };
-      }
-
-      const today = new Date(new Date().toISOString().split('T')[0]);
-
-      // Buscar o crear registro de asistencia para hoy
+      const today = this.getTodayDate();
       let attendance = await this.prisma.attendance.findFirst({
-        where: {
-          studentId: id,
-          attendanceDate: today
-        }
+        where: { studentId: id, attendanceDate: today }
       });
 
       if (attendance) {
-        // Actualizar registro existente
         attendance = await this.prisma.attendance.update({
           where: { id: attendance.id },
-          data: {
-            status,
-            attendanceTime: new Date()
-          }
+          data: { status, attendanceTime: new Date() }
         });
       } else {
-        // Crear nuevo registro
         attendance = await this.prisma.attendance.create({
-          data: {
-            studentId: id,
-            status,
-            attendanceDate: today,
-            attendanceTime: new Date()
-          }
+          data: { studentId: id, status, attendanceDate: today, attendanceTime: new Date() }
         });
       }
 
-      const alumno = {
-        id: student.id,
-        nombre: student.nombre,
-        apellido: student.apellido,
-        estado: attendance.status,
-        lastUpdated: attendance.attendanceTime.toISOString()
-      };
-
       return {
         ok: true,
-        alumno,
+        alumno: this.createAlumnoObject(student, attendance.status, attendance.attendanceTime),
         mensaje: "Estado actualizado exitosamente"
       };
     } catch (error) {
@@ -215,29 +210,23 @@ class AttendanceService {
    */
   async getAttendanceStats() {
     try {
-      const today = new Date(new Date().toISOString().split('T')[0]);
+      const today = this.getTodayDate();
+      const [total, todayAttendance] = await Promise.all([
+        this.prisma.student.count(),
+        this.prisma.attendance.findMany({ where: { attendanceDate: today } })
+      ]);
 
-      // Contar total de estudiantes
-      const total = await this.prisma.student.count();
+      const presente = todayAttendance.filter(a => a.status === 'Presente').length;
+      const tarde = todayAttendance.filter(a => a.status === 'Tarde').length;
+      const presenteOrTarde = presente + tarde;
 
-      // Contar asistencia de hoy
-      const todayAttendance = await this.prisma.attendance.findMany({
-        where: {
-          attendanceDate: today
-        }
-      });
-
-      const stats = {
+      return {
         total,
-        presente: todayAttendance.filter(a => a.status === 'Presente').length,
-        ausente: total - todayAttendance.filter(a => a.status === 'Presente' || a.status === 'Tarde').length,
-        tarde: todayAttendance.filter(a => a.status === 'Tarde').length
+        presente,
+        ausente: total - presenteOrTarde,
+        tarde,
+        attendanceRate: total > 0 ? ((presenteOrTarde / total * 100).toFixed(2)) : 0
       };
-
-      stats.attendanceRate = stats.total > 0 ? 
-        ((stats.presente + stats.tarde) / stats.total * 100).toFixed(2) : 0;
-
-      return stats;
     } catch (error) {
       console.error('Error obteniendo estadísticas:', error);
       throw new Error('Error interno al obtener estadísticas');
@@ -253,19 +242,14 @@ class AttendanceService {
         where: { id },
         include: {
           attendance: {
-            where: {
-              attendanceDate: new Date(new Date().toISOString().split('T')[0])
-            },
-            orderBy: {
-              attendanceTime: 'desc'
-            },
+            where: { attendanceDate: this.getTodayDate() },
+            orderBy: { attendanceTime: 'desc' },
             take: 1
           }
         }
       });
 
       if (!student) return null;
-
       const todayAttendance = student.attendance[0];
       return {
         id: student.id,

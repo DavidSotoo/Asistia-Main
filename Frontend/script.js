@@ -11,19 +11,23 @@
     const btnIrEscanear = document.getElementById('btnIrEscanear');
     const btnIrGenerar = document.getElementById('btnIrGenerar');
     const btnIrLista = document.getElementById('btnIrLista');
+    const btnIrAlumnos = document.getElementById('btnIrAlumnos');
     const btnCrearMaestro = document.getElementById('btnCrearMaestro');
     const btnMaestroEscanear = document.getElementById('btnMaestroEscanear');
     const btnMaestroGenerar = document.getElementById('btnMaestroGenerar');
     const btnMaestroLista = document.getElementById('btnMaestroLista');
+    const btnMaestroAlumnos = document.getElementById('btnMaestroAlumnos');
     const seccionEscanear = document.getElementById('seccionEscanear');
     const seccionGenerar = document.getElementById('seccionGenerar');
     const seccionListado = document.getElementById('seccionListado');
+    const seccionAlumnos = document.getElementById('seccionAlumnos');
     const seccionCrearMaestro = document.getElementById('seccionCrearMaestro');
     const logoutBtn = document.getElementById('logoutBtn');
     const logoutBtnMaestro = document.getElementById('logoutBtnMaestro');
     const btnVolverMenuEscanear = document.getElementById('btnVolverMenuEscanear');
     const btnVolverMenuGenerar = document.getElementById('btnVolverMenuGenerar');
     const btnVolverMenuListado = document.getElementById('btnVolverMenuListado');
+    const btnVolverMenuAlumnos = document.getElementById('btnVolverMenuAlumnos');
     const btnVolverMenuCrearMaestro = document.getElementById('btnVolverMenuCrearMaestro');
 
     // Función para ocultar todas las secciones
@@ -33,11 +37,12 @@
       if (seccionEscanear) seccionEscanear.style.display = 'none';
       if (seccionGenerar) seccionGenerar.style.display = 'none';
       if (seccionListado) seccionListado.style.display = 'none';
+      if (seccionAlumnos) seccionAlumnos.style.display = 'none';
       if (seccionCrearMaestro) seccionCrearMaestro.style.display = 'none';
     };
 
     // Mostrar solo el menú principal al inicio
-    if (menuPrincipal && seccionEscanear && seccionGenerar && seccionListado) {
+    if (menuPrincipal && seccionEscanear && seccionGenerar && seccionListado && seccionAlumnos) {
       hideAllSections();
       menuPrincipal.style.display = '';
     }
@@ -61,12 +66,26 @@
         loadAttendanceList();
       });
     }
+    if (btnIrAlumnos) {
+      btnIrAlumnos.addEventListener('click', () => {
+        hideAllSections();
+        seccionAlumnos.style.display = '';
+        loadStudentsList();
+      });
+    }
     if (btnCrearMaestro) {
       btnCrearMaestro.addEventListener('click', () => {
         hideAllSections();
         seccionCrearMaestro.style.display = '';
         loadTeachersList();
       });
+    }
+
+    // Mostrar botón de crear maestro para maestros también
+    if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'maestro')) {
+      if (btnCrearMaestro) {
+        btnCrearMaestro.style.display = '';
+      }
     }
     if (btnMaestroEscanear) {
       btnMaestroEscanear.addEventListener('click', () => {
@@ -87,6 +106,13 @@
         hideAllSections();
         seccionListado.style.display = '';
         loadAttendanceList();
+      });
+    }
+    if (btnMaestroAlumnos) {
+      btnMaestroAlumnos.addEventListener('click', () => {
+        hideAllSections();
+        seccionAlumnos.style.display = '';
+        loadStudentsList();
       });
     }
 
@@ -117,6 +143,9 @@
     }
     if (btnVolverMenuListado) {
       btnVolverMenuListado.addEventListener('click', showMainMenu);
+    }
+    if (btnVolverMenuAlumnos) {
+      btnVolverMenuAlumnos.addEventListener('click', showMainMenu);
     }
     if (btnVolverMenuCrearMaestro) {
       btnVolverMenuCrearMaestro.addEventListener('click', showMainMenu);
@@ -158,13 +187,6 @@
   // Previene re-escaneos rápidos: guardamos { id: timestamp }
   const recentlyScanned = new Map();
   const DUPLICATE_TIMEOUT_MS = 5000; // 5 segundos para permitir re-escaneo del mismo QR
-
-  // Simula un "backend" con una tabla local (puedes ampliar)
-  const fakeDatabase = {
-    "ALU123": { nombre: "María", apellido: "García", estado: "Presente" },
-    "ALU456": { nombre: "Carlos", apellido: "Pérez", estado: "Tarde" },
-    "ALU789": { nombre: "Lucía", apellido: "Rodríguez", estado: "Presente" }
-  };
 
   // Inicia la cámara y stream
   async function startCamera() {
@@ -300,6 +322,14 @@
     // Llamada real al backend con la matricula
     registerAttendance(qrData.matricula)
       .then(response => {
+        // Reproducir sonido de éxito si la respuesta es exitosa
+        if (response.ok) {
+          const successSound = document.getElementById('successSound');
+          if (successSound) {
+            successSound.currentTime = 0; // Reiniciar el sonido si ya se estaba reproduciendo
+            successSound.play().catch(err => console.warn('No se pudo reproducir el sonido:', err));
+          }
+        }
         // Mostrar en UI
         showResult(qrData, response);
         // Añadir al historial
@@ -339,7 +369,7 @@
     loginContainer.style.display = 'none';
     mainApp.style.display = 'grid';
     isAuthenticated = true;
-    
+
     // Mostrar el menú correcto según el rol del usuario
     if (currentUser && currentUser.role === 'maestro') {
       document.getElementById('menuMaestro').style.display = '';
@@ -347,11 +377,18 @@
     } else {
       document.getElementById('menuPrincipal').style.display = '';
       document.getElementById('menuMaestro').style.display = 'none';
-      
+
       // Mostrar botón de crear maestro solo para admin
       const btnCrearMaestro = document.getElementById('btnCrearMaestro');
       if (btnCrearMaestro && currentUser && currentUser.role === 'admin') {
         btnCrearMaestro.style.display = '';
+      }
+
+      // Ocultar botones no permitidos para admin
+      if (currentUser && currentUser.role === 'admin') {
+        document.getElementById('btnIrEscanear').style.display = 'none';
+        document.getElementById('btnIrGenerar').style.display = 'none';
+        document.getElementById('btnIrLista').style.display = 'none';
       }
     }
   }
@@ -453,14 +490,8 @@
   // Llamada real al backend para registrar asistencia
   async function registerAttendance(qrText) {
     try {
-      const headers = {
-        'Content-Type': 'application/json'
-      };
-      
-      // Añadir token de autenticación si está disponible
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
-      }
+      const headers = { 'Content-Type': 'application/json' };
+      if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
       const response = await fetch(`${BACKEND_URL}/api/asistencia`, {
         method: 'POST',
@@ -468,25 +499,15 @@
         body: JSON.stringify({ id: qrText })
       });
 
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
+      if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+      return await response.json();
     } catch (error) {
       console.error('Error en la petición al backend:', error);
-      // Fallback a datos simulados si el backend no está disponible
-      const alumno = fakeDatabase[qrText];
-      if (alumno) {
-        return { ok: true, alumno };
-      } else {
-        return {
-          ok: false,
-          alumno: { nombre: "Error", apellido: "", estado: "No registrado" },
-          mensaje: 'Error de conexión con el servidor. Usando datos locales.'
-        };
-      }
+      return {
+        ok: false,
+        alumno: { nombre: "Error", apellido: "", estado: "No registrado" },
+        mensaje: 'Error de conexión con el servidor'
+      };
     }
   }
 
@@ -744,6 +765,45 @@
     document.getElementById('totalTarde').textContent = tarde;
   }
 
+  // Función para exportar a CSV
+  async function exportToCSV() {
+    try {
+      const headers = {};
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/export/csv`, {
+        method: 'GET',
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      // Crear blob y descargar
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'asistencia.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      alert('Archivo CSV descargado exitosamente');
+    } catch (error) {
+      console.error('Error descargando CSV:', error);
+      alert('Error al descargar el archivo CSV');
+    }
+  }
+
+  // Hacer función global para que pueda ser llamada desde HTML
+  window.exportToCSV = exportToCSV;
+
   // Función para actualizar el estado de un estudiante
   async function updateStudentStatus(id, status) {
     try {
@@ -776,6 +836,234 @@
       }
     } catch (error) {
       console.error('Error actualizando estado:', error);
+      alert('Error de conexión con el servidor');
+    }
+  }
+
+  // Función para cargar la lista de alumnos
+  async function loadStudentsList() {
+    try {
+      const headers = {};
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/alumnos`, {
+        method: 'GET',
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.ok) {
+        renderStudentsTable(data.alumnos);
+      } else {
+        console.error('Error obteniendo lista de alumnos:', data.mensaje);
+        alert('Error al cargar la lista de alumnos');
+      }
+    } catch (error) {
+      console.error('Error cargando lista de alumnos:', error);
+      alert('Error de conexión con el servidor');
+    }
+  }
+
+  // Función para cargar la lista de alumnos en la sección generar
+  async function loadStudentsListGenerar() {
+    try {
+      const headers = {};
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/alumnos`, {
+        method: 'GET',
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.ok) {
+        renderStudentsTableGenerar(data.alumnos);
+      } else {
+        console.error('Error obteniendo lista de alumnos:', data.mensaje);
+        alert('Error al cargar la lista de alumnos');
+      }
+    } catch (error) {
+      console.error('Error cargando lista de alumnos:', error);
+      alert('Error de conexión con el servidor');
+    }
+  }
+
+  // Función para renderizar las tarjetas de alumnos
+  function renderStudentsTable(alumnos) {
+    const cardsContainer = document.getElementById('studentsCardsContainer');
+    cardsContainer.innerHTML = '';
+
+    alumnos.forEach(alumno => {
+      const card = document.createElement('div');
+      card.className = 'student-card';
+
+      const cardHeader = document.createElement('div');
+      cardHeader.className = 'student-card-header';
+
+      const studentId = document.createElement('span');
+      studentId.className = 'student-id';
+      studentId.textContent = `ID: ${alumno.id}`;
+      cardHeader.appendChild(studentId);
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn-delete-student logout-btn';
+      deleteBtn.textContent = 'Eliminar';
+      deleteBtn.onclick = () => deleteStudent(alumno.id);
+      cardHeader.appendChild(deleteBtn);
+
+      card.appendChild(cardHeader);
+
+      const studentName = document.createElement('div');
+      studentName.className = 'student-name';
+      studentName.textContent = alumno.nombre;
+      card.appendChild(studentName);
+
+      const studentLastname = document.createElement('div');
+      studentLastname.className = 'student-lastname';
+      studentLastname.textContent = alumno.apellido;
+      card.appendChild(studentLastname);
+
+      const studentGroup = document.createElement('div');
+      studentGroup.className = 'student-group';
+      studentGroup.textContent = alumno.grupo || 'N/A';
+      card.appendChild(studentGroup);
+
+      const qrContainer = document.createElement('div');
+      qrContainer.className = 'student-qr-container';
+
+      const qrLabel = document.createElement('div');
+      qrLabel.className = 'student-qr-label';
+      qrLabel.textContent = 'Código QR';
+      qrContainer.appendChild(qrLabel);
+
+      const qrImg = document.createElement('img');
+      qrImg.className = 'student-qr-image';
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(JSON.stringify({
+        id: alumno.id,
+        nombre: alumno.nombre,
+        apellido: alumno.apellido,
+        matricula: alumno.matricula,
+        grupo: alumno.grupo
+      }))}`;
+      qrImg.alt = `QR de ${alumno.nombre} ${alumno.apellido}`;
+      qrContainer.appendChild(qrImg);
+
+      card.appendChild(qrContainer);
+      cardsContainer.appendChild(card);
+    });
+  }
+
+  // Función para renderizar las tarjetas de alumnos en la sección generar
+  function renderStudentsTableGenerar(alumnos) {
+    const cardsContainer = document.getElementById('studentsCardsContainerGenerar');
+    cardsContainer.innerHTML = '';
+
+    alumnos.forEach(alumno => {
+      const card = document.createElement('div');
+      card.className = 'student-card';
+
+      const cardHeader = document.createElement('div');
+      cardHeader.className = 'student-card-header';
+
+      const studentId = document.createElement('span');
+      studentId.className = 'student-id';
+      studentId.textContent = `ID: ${alumno.id}`;
+      cardHeader.appendChild(studentId);
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn-delete-student logout-btn';
+      deleteBtn.textContent = 'Eliminar';
+      deleteBtn.onclick = () => deleteStudent(alumno.id);
+      cardHeader.appendChild(deleteBtn);
+
+      card.appendChild(cardHeader);
+
+      const studentName = document.createElement('div');
+      studentName.className = 'student-name';
+      studentName.textContent = alumno.nombre;
+      card.appendChild(studentName);
+
+      const studentLastname = document.createElement('div');
+      studentLastname.className = 'student-lastname';
+      studentLastname.textContent = alumno.apellido;
+      card.appendChild(studentLastname);
+
+      const studentGroup = document.createElement('div');
+      studentGroup.className = 'student-group';
+      studentGroup.textContent = alumno.grupo || 'N/A';
+      card.appendChild(studentGroup);
+
+      const qrContainer = document.createElement('div');
+      qrContainer.className = 'student-qr-container';
+
+      const qrLabel = document.createElement('div');
+      qrLabel.className = 'student-qr-label';
+      qrLabel.textContent = 'Código QR';
+      qrContainer.appendChild(qrLabel);
+
+      const qrImg = document.createElement('img');
+      qrImg.className = 'student-qr-image';
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(JSON.stringify({
+        id: alumno.id,
+        nombre: alumno.nombre,
+        apellido: alumno.apellido,
+        matricula: alumno.matricula,
+        grupo: alumno.grupo
+      }))}`;
+      qrImg.alt = `QR de ${alumno.nombre} ${alumno.apellido}`;
+      qrContainer.appendChild(qrImg);
+
+      card.appendChild(qrContainer);
+      cardsContainer.appendChild(card);
+    });
+  }
+
+  // Función para eliminar un estudiante
+  async function deleteStudent(studentId) {
+    if (!confirm('¿Estás seguro de que quieres eliminar este estudiante? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      const headers = {};
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/alumnos/${studentId}`, {
+        method: 'DELETE',
+        headers
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.ok) {
+        alert('Estudiante eliminado exitosamente');
+        loadStudentsList(); // Recargar la lista
+      } else {
+        console.error('Error eliminando estudiante:', data.mensaje);
+        alert('Error al eliminar el estudiante');
+      }
+    } catch (error) {
+      console.error('Error eliminando estudiante:', error);
       alert('Error de conexión con el servidor');
     }
   }
@@ -979,6 +1267,12 @@
   }
 
   // Inicializar cuando el DOM esté listo
+  // Event listener para el botón de exportar CSV
+  const exportCsvBtn = document.getElementById('exportCsvBtn');
+  if (exportCsvBtn) {
+    exportCsvBtn.addEventListener('click', exportToCSV);
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       initializeApp();
