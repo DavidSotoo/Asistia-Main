@@ -18,7 +18,7 @@ const requireAdminOrTeacher = async (req, res, next) => {
 
     const decoded = authService.verifyToken(token);
 
-    if (decoded.role !== 'admin' && decoded.role !== 'maestro') {
+    if (decoded.role !== 'administrador' && decoded.role !== 'maestro') {
       return res.status(403).json({
         ok: false,
         mensaje: "Acceso denegado. Se requiere rol de administrador o maestro"
@@ -144,7 +144,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const currentUser = req.user;
     
     // Solo el admin o el propio maestro pueden ver la información
-    if (currentUser.role !== 'admin' && currentUser.id !== teacherId) {
+    if (currentUser.role !== 'administrador' && currentUser.id !== teacherId) {
       return res.status(403).json({
         ok: false,
         mensaje: "Acceso denegado"
@@ -185,7 +185,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const { name, email, password } = req.body;
     
     // Solo el admin o el propio maestro pueden actualizar
-    if (currentUser.role !== 'admin' && currentUser.id !== teacherId) {
+    if (currentUser.role !== 'administrador' && currentUser.id !== teacherId) {
       return res.status(403).json({
         ok: false,
         mensaje: "Acceso denegado"

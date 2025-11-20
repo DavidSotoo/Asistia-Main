@@ -26,7 +26,7 @@ async function createAdminUser() {
         password: 'admin123',
         name: 'Administrador',
         email: 'admin@asistia.com',
-        role: 'admin'
+        role: 'administrador'
       }
     });
     

@@ -82,7 +82,7 @@
     }
 
     // Mostrar botón de crear maestro para maestros también
-    if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'maestro')) {
+    if (currentUser && (currentUser.role === 'administrador' || currentUser.role === 'maestro')) {
       if (btnCrearMaestro) {
         btnCrearMaestro.style.display = '';
       }
@@ -177,6 +177,7 @@
   let isAuthenticated = false;
   let currentUser = null;
   let authToken = null;
+  window.currentUser = null;
 
   // Variables del QR scanner
   let streamingStream = null;     // MediaStream actual
@@ -378,17 +379,20 @@
       document.getElementById('menuPrincipal').style.display = '';
       document.getElementById('menuMaestro').style.display = 'none';
 
-      // Mostrar botón de crear maestro solo para admin
-      const btnCrearMaestro = document.getElementById('btnCrearMaestro');
-      if (btnCrearMaestro && currentUser && currentUser.role === 'admin') {
-        btnCrearMaestro.style.display = '';
-      }
+      // Para admin, mostrar solo botones de Crear Maestro y Alumnos
+      if (currentUser && currentUser.role === 'administrador') {
+        // Ocultar botones no necesarios para admin
+        const btnIrEscanear = document.getElementById('btnIrEscanear');
+        const btnIrGenerar = document.getElementById('btnIrGenerar');
+        const btnIrLista = document.getElementById('btnIrLista');
+        const btnCrearMaestro = document.getElementById('btnCrearMaestro');
+        const btnIrAlumnos = document.getElementById('btnIrAlumnos');
 
-      // Ocultar botones no permitidos para admin
-      if (currentUser && currentUser.role === 'admin') {
-        document.getElementById('btnIrEscanear').style.display = 'none';
-        document.getElementById('btnIrGenerar').style.display = 'none';
-        document.getElementById('btnIrLista').style.display = 'none';
+        if (btnIrEscanear) btnIrEscanear.style.display = 'none';
+        if (btnIrGenerar) btnIrGenerar.style.display = 'none';
+        if (btnIrLista) btnIrLista.style.display = 'none';
+        if (btnCrearMaestro) btnCrearMaestro.style.display = 'block';
+        if (btnIrAlumnos) btnIrAlumnos.style.display = 'block';
       }
     }
   }
@@ -426,14 +430,15 @@
         // Login exitoso
         authToken = data.data.token;
         currentUser = data.data.user;
-        
+        window.currentUser = currentUser;
+
         // Guardar en localStorage
         localStorage.setItem('asistia_auth_token', authToken);
         localStorage.setItem('asistia_user', JSON.stringify(currentUser));
-        
+
         isAuthenticated = true;
         showMainApp();
-        
+
         // Limpiar formulario
         loginForm.reset();
       } else {
