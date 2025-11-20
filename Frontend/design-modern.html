@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Maqueta - Estilo Modern</title>
+  <link rel="stylesheet" href="./style-modern.css" />
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Asistia</div>
+    <ul class="nav-actions">
+      <li class="nav-item active">Alumnos</li>
+      <li class="nav-item">Maestros</li>
+      <li class="nav-item">Generar QR</li>
+      <li class="nav-item">Grupos</li>
+      <li class="nav-item">Ajustes</li>
+    </ul>
+    <div class="nav-profile">Admin ▾</div>
+  </nav>
+
+  <main class="layout">
+    <section class="panel cards-panel">
+      <header class="panel-header">
+        <h2>Alumnos</h2>
+        <div class="panel-controls">
+          <button class="btn ghost">Filtrar</button>
+          <button class="btn primary">Nuevo Alumno</button>
+        </div>
+      </header>
+
+      <div class="cards-grid">
+        <!-- Ejemplo de tarjeta -->
+        <article class="card">
+          <div class="card-media" style="background-image:linear-gradient(135deg,#7b61ff,#4ad1ff);">
+            <span class="initials">AB</span>
+          </div>
+          <div class="card-body">
+            <h3 class="card-title">Ana Benítez</h3>
+            <p class="card-sub">Grupo A • Matrícula 2025-001</p>
+          </div>
+          <div class="card-actions">
+            <button class="icon">👁️</button>
+            <button class="icon warning">✏️</button>
+            <button class="icon danger">🗑️</button>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-media" style="background-image:linear-gradient(135deg,#ff8fb0,#ffd36b);">
+            <img src="https://picsum.photos/seed/1/200" alt="Foto alumno" />
+          </div>
+          <div class="card-body">
+            <h3 class="card-title">Carlos Díaz</h3>
+            <p class="card-sub">Grupo B • Matrícula 2025-002</p>
+          </div>
+          <div class="card-actions">
+            <button class="icon">👁️</button>
+            <button class="icon">✏️</button>
+            <button class="icon danger">🗑️</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <aside class="panel form-panel">
+      <header class="panel-header">
+        <h2>Generar QR</h2>
+      </header>
+
+      <form class="form-grid">
+        <label class="form-field">
+          <span class="label">Nombre</span>
+          <input type="text" placeholder="Nombre" />
+        </label>
+
+        <label class="form-field">
+          <span class="label">Apellido</span>
+          <input type="text" placeholder="Apellido" />
+        </label>
+
+        <label class="form-field full">
+          <span class="label">Grupo</span>
+          <input type="text" id="grupo" placeholder="Grupo ej. 3A" />
+        </label>
+
+        <div class="camera-box">
+          <div class="camera-preview">
+            <div class="camera-overlay" aria-hidden></div>
+          </div>
+          <div class="camera-actions">
+            <button class="btn secondary">Iniciar cámara</button>
+            <button class="btn ghost">Subir foto</button>
+          </div>
+        </div>
+
+        <div class="form-actions full">
+          <button class="btn ghost">Cancelar</button>
+          <button class="btn primary">Generar QR</button>
+        </div>
+      </form>
+    </aside>
+  </main>
+
+  <div id="toasts" aria-live="polite" class="toasts"></div>
+
+  <footer class="site-footer">© 2025 Asistia</footer>
+
+</body>
+</html>

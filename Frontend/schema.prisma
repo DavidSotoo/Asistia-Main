@@ -1,0 +1,29 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // o postgresql, mysql, etc.
+  url      = env("DATABASE_URL")
+}
+
+model Group {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  students Student[]
+}
+
+model Student {
+  id        Int     @id @default(autoincrement())
+  nombre    String
+  apellido  String
+  matricula String  @unique
+  // El campo 'grupo' de texto se reemplaza por la relación
+  groupId   Int
+  group     Group   @relation(fields: [groupId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
