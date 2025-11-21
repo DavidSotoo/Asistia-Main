@@ -185,6 +185,11 @@
   let rafId = null;               // requestAnimationFrame id
   const ctx = canvas.getContext('2d');
 
+  // Variables para captura de foto
+  let photoStream = null;         // MediaStream para foto
+  let capturedPhotoBlob = null;   // Blob de la foto capturada
+  const photoCtx = photoCanvas.getContext('2d');
+
   // Previene re-escaneos rápidos: guardamos { id: timestamp }
   const recentlyScanned = new Map();
   const DUPLICATE_TIMEOUT_MS = 5000; // 5 segundos para permitir re-escaneo del mismo QR
@@ -521,9 +526,22 @@
     resultCard.classList.remove('empty');
     resultCard.innerHTML = ''; // limpiamos
 
+    const alumno = response.alumno || {};
+
+    // Mostrar foto si existe
+    if (alumno.photoUrl) {
+      const photoContainer = document.createElement('div');
+      photoContainer.className = 'result-photo-container';
+      const photoImg = document.createElement('img');
+      photoImg.className = 'result-photo';
+      photoImg.src = `${BACKEND_URL}${alumno.photoUrl}`;
+      photoImg.alt = `Foto de ${alumno.nombre} ${alumno.apellido}`;
+      photoContainer.appendChild(photoImg);
+      resultCard.appendChild(photoContainer);
+    }
+
     const title = document.createElement('div');
     title.className = 'result-name';
-    const alumno = response.alumno || {};
     title.textContent = `${alumno.nombre || qrData.nombre || '—'} ${alumno.apellido || qrData.apellido || ''}`.trim();
 
     const idLine = document.createElement('div');
@@ -639,6 +657,8 @@
   // Si cerramos la pestaña o recargamos, detenemos la cámara
   window.addEventListener('pagehide', stopCamera);
   window.addEventListener('unload', stopCamera);
+  window.addEventListener('pagehide', stopPhotoCamera);
+  window.addEventListener('unload', stopPhotoCamera);
 
   // Inicialización de la aplicación
   function initializeApp() {
@@ -912,7 +932,18 @@
     const cardsContainer = document.getElementById('studentsCardsContainer');
     cardsContainer.innerHTML = '';
 
+    console.log('🔍 DIAGNÓSTICO - Renderizando lista de alumnos:', alumnos.length, 'alumnos');
+
     alumnos.forEach(alumno => {
+      console.log('👤 Alumno:', {
+        id: alumno.id,
+        nombre: alumno.nombre,
+        apellido: alumno.apellido,
+        photoUrl: alumno.photoUrl,
+        matricula: alumno.matricula,
+        grupo: alumno.grupo
+      });
+
       const card = document.createElement('div');
       card.className = 'student-card';
 
@@ -931,6 +962,43 @@
       cardHeader.appendChild(deleteBtn);
 
       card.appendChild(cardHeader);
+
+      // Mostrar foto o avatar con iniciales
+      const photoContainer = document.createElement('div');
+      photoContainer.className = 'student-photo-container';
+
+      if (alumno.photoUrl) {
+        console.log('📸 Alumno tiene photoUrl:', alumno.photoUrl);
+        const fullPhotoUrl = `${BACKEND_URL}${alumno.photoUrl}`;
+        console.log('🔗 URL completa de la foto:', fullPhotoUrl);
+
+        const photoImg = document.createElement('img');
+        photoImg.className = 'student-photo';
+        photoImg.src = fullPhotoUrl;
+        photoImg.alt = `Foto de ${alumno.nombre} ${alumno.apellido}`;
+
+        // Agregar eventos de diagnóstico
+        photoImg.onload = () => {
+          console.log('✅ Foto cargada exitosamente:', fullPhotoUrl);
+        };
+        photoImg.onerror = (e) => {
+          console.error('❌ Error cargando foto:', fullPhotoUrl, e);
+        };
+
+        photoContainer.appendChild(photoImg);
+      } else {
+        console.log('👤 Alumno NO tiene photoUrl, creando avatar');
+        // Crear avatar con iniciales
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'student-avatar';
+        const iniciales = `${alumno.nombre.charAt(0)}${alumno.apellido.charAt(0)}`.toUpperCase();
+        console.log('🔤 Iniciales generadas:', iniciales, 'para', alumno.nombre, alumno.apellido);
+        avatarDiv.textContent = iniciales;
+        avatarDiv.title = `${alumno.nombre} ${alumno.apellido}`;
+        photoContainer.appendChild(avatarDiv);
+      }
+
+      card.appendChild(photoContainer);
 
       const studentName = document.createElement('div');
       studentName.className = 'student-name';
@@ -970,6 +1038,8 @@
       card.appendChild(qrContainer);
       cardsContainer.appendChild(card);
     });
+
+    console.log('✅ Renderizado completado de', alumnos.length, 'tarjetas de alumnos');
   }
 
   // Función para renderizar las tarjetas de alumnos en la sección generar
@@ -996,6 +1066,18 @@
       cardHeader.appendChild(deleteBtn);
 
       card.appendChild(cardHeader);
+
+      // Mostrar foto si existe
+      if (alumno.photoUrl) {
+        const photoContainer = document.createElement('div');
+        photoContainer.className = 'student-photo-container';
+        const photoImg = document.createElement('img');
+        photoImg.className = 'student-photo';
+        photoImg.src = `${BACKEND_URL}${alumno.photoUrl}`;
+        photoImg.alt = `Foto de ${alumno.nombre} ${alumno.apellido}`;
+        photoContainer.appendChild(photoImg);
+        card.appendChild(photoContainer);
+      }
 
       const studentName = document.createElement('div');
       studentName.className = 'student-name';
@@ -1286,6 +1368,209 @@
   } else {
     initializeApp();
     setupTeacherFormListener();
+  }
+
+  // Funciones para captura de foto
+  async function startPhotoCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('getUserMedia no está soportado en este navegador.');
+      return;
+    }
+
+    const constraints = {
+      audio: false,
+      video: {
+        facingMode: { ideal: 'user' }, // Cámara frontal para fotos
+        width: { ideal: 640 },
+        height: { ideal: 480 }
+      }
+    };
+
+    try {
+      photoStream = await navigator.mediaDevices.getUserMedia(constraints);
+      const photoVideo = document.getElementById('photoVideo');
+      photoVideo.srcObject = photoStream;
+      await photoVideo.play();
+
+      document.getElementById('startPhotoCamera').disabled = true;
+      document.getElementById('capturePhoto').disabled = false;
+      document.getElementById('retakePhoto').style.display = 'none';
+      document.getElementById('photoPreview').style.display = 'none';
+    } catch (err) {
+      console.error('Error al acceder a la cámara para foto:', err);
+      alert('No se pudo acceder a la cámara para tomar foto.');
+    }
+  }
+
+  function stopPhotoCamera() {
+    if (photoStream) {
+      photoStream.getTracks().forEach(t => t.stop());
+      photoStream = null;
+    }
+    const photoVideo = document.getElementById('photoVideo');
+    if (photoVideo) {
+      photoVideo.pause();
+      photoVideo.srcObject = null;
+    }
+    document.getElementById('startPhotoCamera').disabled = false;
+    document.getElementById('capturePhoto').disabled = true;
+    document.getElementById('retakePhoto').style.display = 'none';
+    document.getElementById('photoPreview').style.display = 'none';
+  }
+
+  function capturePhoto() {
+    const photoVideo = document.getElementById('photoVideo');
+    const photoCanvas = document.getElementById('photoCanvas');
+    const capturedPhoto = document.getElementById('capturedPhoto');
+
+    if (!photoVideo || !photoCanvas) return;
+
+    // Ajustar canvas al tamaño del video
+    photoCanvas.width = photoVideo.videoWidth;
+    photoCanvas.height = photoVideo.videoHeight;
+
+    // Dibujar el frame actual en el canvas
+    photoCtx.drawImage(photoVideo, 0, 0, photoCanvas.width, photoCanvas.height);
+
+    // Convertir a blob
+    photoCanvas.toBlob(blob => {
+      capturedPhotoBlob = blob;
+      capturedPhoto.src = URL.createObjectURL(blob);
+
+      // Mostrar preview y ocultar video
+      document.getElementById('photoPreview').style.display = '';
+      photoVideo.style.display = 'none';
+      document.getElementById('capturePhoto').disabled = true;
+      document.getElementById('retakePhoto').style.display = '';
+    }, 'image/jpeg', 0.8);
+  }
+
+  function retakePhoto() {
+    // Limpiar blob anterior
+    if (capturedPhotoBlob) {
+      URL.revokeObjectURL(capturedPhoto.src);
+      capturedPhotoBlob = null;
+    }
+
+    // Mostrar video y ocultar preview
+    document.getElementById('photoVideo').style.display = '';
+    document.getElementById('photoPreview').style.display = 'none';
+    document.getElementById('capturePhoto').disabled = false;
+    document.getElementById('retakePhoto').style.display = 'none';
+  }
+
+  // Función para crear alumno con foto
+  async function createStudentWithPhoto(formData) {
+    try {
+      const headers = {};
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
+      // Crear FormData con los datos del formulario y la foto
+      const submitData = new FormData();
+
+      // Agregar campos del formulario
+      submitData.append('nombre', formData.get('nombre'));
+      submitData.append('apellido', formData.get('apellido'));
+      submitData.append('matricula', formData.get('matricula'));
+      submitData.append('grupo', formData.get('grupo'));
+
+      // Agregar foto si existe
+      if (capturedPhotoBlob) {
+        submitData.append('photo', capturedPhotoBlob, `photo_${Date.now()}.jpg`);
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/alumnos/create`, {
+        method: 'POST',
+        headers,
+        body: submitData
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error creando alumno:', error);
+      throw error;
+    }
+  }
+
+  // Event listeners para captura de foto
+  if (document.getElementById('startPhotoCamera')) {
+    document.getElementById('startPhotoCamera').addEventListener('click', startPhotoCamera);
+  }
+  if (document.getElementById('capturePhoto')) {
+    document.getElementById('capturePhoto').addEventListener('click', capturePhoto);
+  }
+  if (document.getElementById('retakePhoto')) {
+    document.getElementById('retakePhoto').addEventListener('click', retakePhoto);
+  }
+
+  // Modificar el event listener del formulario de alumno
+  const formAlumno = document.getElementById('formAlumno');
+  if (formAlumno) {
+    formAlumno.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const formData = new FormData(formAlumno);
+      const nombre = formData.get('nombre');
+      const apellido = formData.get('apellido');
+      const matricula = formData.get('matricula');
+      const grupo = formData.get('grupo');
+
+      if (!nombre || !apellido || !matricula || !grupo) {
+        alert('Por favor, completa todos los campos requeridos');
+        return;
+      }
+
+      try {
+        const response = await createStudentWithPhoto(formData);
+
+        if (response.ok) {
+          alert('Alumno creado exitosamente');
+          formAlumno.reset();
+          stopPhotoCamera();
+
+          // Generar QR directamente en el frontend
+          const alumno = response.alumno;
+          const qrData = JSON.stringify({
+            id: alumno.id,
+            nombre: alumno.nombre,
+            apellido: alumno.apellido,
+            matricula: alumno.matricula,
+            grupo: alumno.grupo,
+            photoUrl: alumno.photoUrl
+          });
+
+          QRCode.toDataURL(qrData, (err, url) => {
+            if (err) {
+              console.error('Error generando QR:', err);
+              document.getElementById('mensaje').textContent = '❌ Error generando QR.';
+              document.getElementById('mensaje').style.color = 'red';
+              return;
+            }
+
+            document.getElementById('qrImagen').src = url;
+            document.getElementById('qrImagen').hidden = false;
+            document.getElementById('descargarQR').href = url;
+            document.getElementById('descargarQR').hidden = false;
+            document.getElementById('generarNuevoQR').hidden = false;
+
+            document.getElementById('mensaje').textContent = '✅ QR generado con éxito.';
+            document.getElementById('mensaje').style.color = 'green';
+          });
+        } else {
+          alert(response.mensaje || 'Error al crear el alumno');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error de conexión con el servidor');
+      }
+    });
   }
 
   // FIN del IIFE

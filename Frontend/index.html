@@ -156,9 +156,27 @@
             <input type="text" id="apellido" required>
             <label for="matricula">Matrícula</label>
             <input type="text" id="matricula" required>
-        <label for="grupo">Grupo</label>
-        <input type="text" id="grupo" required>
-        <button type="submit">Generar QR</button>
+            <label for="grupo">Grupo</label>
+            <input type="text" id="grupo" required>
+
+            <!-- Sección de captura de foto -->
+            <div class="photo-capture-section">
+              <label>Foto del Alumno</label>
+              <div class="camera-controls">
+                <video id="photoVideo" playsinline autoplay muted style="width: 100%; max-width: 300px; border: 1px solid #ccc;"></video>
+                <canvas id="photoCanvas" hidden></canvas>
+                <div class="photo-buttons">
+                  <button type="button" id="startPhotoCamera" class="btn btn-secondary">Iniciar Cámara</button>
+                  <button type="button" id="capturePhoto" class="btn btn-secondary" disabled>Capturar Foto</button>
+                  <button type="button" id="retakePhoto" class="btn btn-secondary" style="display: none;">Tomar Otra</button>
+                </div>
+                <div id="photoPreview" class="photo-preview" style="display: none;">
+                  <img id="capturedPhoto" alt="Foto capturada" style="width: 100%; max-width: 300px;">
+                </div>
+              </div>
+            </div>
+
+            <button type="submit">Generar QR</button>
           </form>
           <div id="mensaje" class="mensaje"></div>
         </div>
@@ -174,8 +192,6 @@
             </div>
           </div>
         </div>
-      </div>
-
       </div>
     </section>
 

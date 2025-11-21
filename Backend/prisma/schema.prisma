@@ -28,8 +28,6 @@ model Student {
   nombre    String
   apellido  String
   matricula String? @unique
-  photoUrl  String? 
-  matricula String?  @unique
   photoUrl  String?
   grupo     String?
   email     String?

@@ -1370,6 +1370,56 @@ video {
 	margin-bottom: 16px;
 }
 
+/* ===== PHOTO/AVATAR CONTAINER ===== */
+.student-photo-container {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-bottom: 16px;
+	min-height: 80px; /* Asegurar espacio mínimo */
+}
+
+/* ===== STUDENT PHOTO STYLES ===== */
+.student-photo {
+	width: 80px;
+	height: 80px;
+	border-radius: 50%;
+	border: 3px solid var(--accent);
+	box-shadow: 0 4px 12px rgba(14,165,164,0.2);
+	object-fit: cover;
+	transition: transform 0.3s ease, box-shadow 0.3s ease;
+	background-color: #10192b; /* Fallback background */
+}
+
+.student-photo:hover {
+	transform: scale(1.1);
+	box-shadow: 0 8px 24px rgba(14,165,164,0.4);
+}
+
+/* ===== STUDENT AVATAR STYLES ===== */
+.student-avatar {
+	width: 80px;
+	height: 80px;
+	border-radius: 50%;
+	background: linear-gradient(135deg, var(--accent), var(--accent2));
+	border: 3px solid var(--accent2);
+	box-shadow: 0 4px 12px rgba(14,165,164,0.2);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: 2rem;
+	font-weight: 700;
+	color: #fff;
+	text-transform: uppercase;
+	transition: transform 0.3s ease, box-shadow 0.3s ease;
+	cursor: default;
+}
+
+.student-avatar:hover {
+	transform: scale(1.1);
+	box-shadow: 0 8px 24px rgba(14,165,164,0.4);
+}
+
 .student-qr-container {
 	text-align: center;
 	margin-top: 16px;

@@ -14,6 +14,7 @@ const databaseService = require('./services/databaseService');
 const attendanceRoutes = require('./routes/attendance');
 const authRoutes = require('./routes/auth');
 const teachersRoutes = require('./routes/teachers');
+const uploadRoutes = require('./routes/upload');
 
 // QRCode para generar QR
 const QRCode = require('qrcode');
@@ -48,6 +49,10 @@ app.use(morgan('combined'));
 // Middleware para parsear JSON
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Servir archivos estáticos (fotos de estudiantes)
+app.use('/uploads', express.static('uploads'));
+app.use('/photos', express.static('uploads/photos'));
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
@@ -122,6 +127,7 @@ app.post('/generarQR', async (req, res) => {
 app.use('/api', attendanceRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/teachers', teachersRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Middleware de manejo de errores
 app.use(notFound);

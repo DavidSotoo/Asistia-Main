@@ -291,6 +291,33 @@ class AttendanceService {
   }
 
   /**
+   * Crear estudiante
+   */
+  async createStudent(data) {
+    try {
+      const student = await this.prisma.student.create({
+        data
+      });
+
+      return {
+        ok: true,
+        alumno: {
+          id: student.id,
+          nombre: student.nombre,
+          apellido: student.apellido,
+          matricula: student.matricula,
+          grupo: student.grupo,
+          photoUrl: student.photoUrl
+        },
+        mensaje: "Estudiante creado exitosamente"
+      };
+    } catch (error) {
+      console.error('Error creando estudiante:', error);
+      throw new Error('Error interno al crear estudiante');
+    }
+  }
+
+  /**
    * Eliminar estudiante
    */
   async deleteStudent(id) {
