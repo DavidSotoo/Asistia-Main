@@ -15,6 +15,7 @@ const attendanceRoutes = require('./routes/attendance');
 const authRoutes = require('./routes/auth');
 const teachersRoutes = require('./routes/teachers');
 const uploadRoutes = require('./routes/upload');
+const subjectsRoutes = require('./routes/subjects');
 
 // QRCode para generar QR
 const QRCode = require('qrcode');
@@ -128,6 +129,7 @@ app.use('/api', attendanceRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/teachers', teachersRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/subjects', subjectsRoutes);
 
 // Middleware de manejo de errores
 app.use(notFound);

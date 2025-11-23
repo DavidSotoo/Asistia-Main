@@ -82,6 +82,8 @@
         <button id="btnIrAlumnos" class="menu-btn-grande">Alumnos</button>
         <!-- Botón para crear maestros (solo visible para admin) -->
         <button id="btnCrearMaestro" class="menu-btn-grande admin-only" style="display:none;">Crear Maestro</button>
+        <!-- Botón para gestionar materias (solo visible para admin) -->
+        <button id="btnGestionarMaterias" class="menu-btn-grande admin-only" style="display:none;">Gestionar Materias</button>
       </div>
       <button id="logoutBtn" class="logout-btn" title="Cerrar sesión" style="margin-top:40px;">Cerrar Sesión</button>
     </section>
@@ -296,6 +298,67 @@
 
       <div style="text-align:center; margin: 32px 0 0 0;">
         <button id="btnVolverMenuCrearMaestro" class="volver-menu-btn">Volver al menú principal</button>
+      </div>
+    </section>
+
+    <!-- Sección Gestionar Materias (inicialmente oculta) -->
+    <section id="seccionGestionarMaterias" style="display:none;">
+      <h1>Gestión de Materias</h1>
+      <div class="subjects-container">
+        <div class="subjects-form-container">
+          <div class="subjects-form-card">
+            <h2 id="formTitle">Crear Nueva Materia</h2>
+            <form id="formMateria">
+              <input type="hidden" id="materiaId" name="id">
+              
+              <div class="form-group">
+                <label for="materiaNombre">Nombre de la Materia *</label>
+                <input type="text" id="materiaNombre" name="name" required placeholder="Ej: Matemáticas I">
+              </div>
+
+              <div class="form-group">
+                <label for="materiaCodigo">Código (Opcional)</label>
+                <input type="text" id="materiaCodigo" name="code" placeholder="Ej: MAT101">
+              </div>
+
+              <div class="form-group">
+                <label for="materiaDescripcion">Descripción (Opcional)</label>
+                <textarea id="materiaDescripcion" name="description" rows="3" placeholder="Descripción de la materia"></textarea>
+              </div>
+
+              <div class="form-group">
+                <label for="materiaMaestro">Maestro *</label>
+                <select id="materiaMaestro" name="teacherId" required>
+                  <option value="">Selecciona un maestro</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Horarios</label>
+                <div id="horariosContainer">
+                  <!-- Los horarios se agregarán dinámicamente -->
+                </div>
+                <button type="button" id="btnAgregarHorario" class="btn btn-secondary">+ Agregar Horario</button>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="btnGuardarMateria">Guardar Materia</button>
+                <button type="button" class="btn btn-secondary" id="btnCancelarMateria" style="display:none;">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="subjects-list-container">
+          <h2>Lista de Materias</h2>
+          <div id="subjectsList" class="subjects-list">
+            <!-- Las materias se cargarán dinámicamente -->
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center; margin: 32px 0 0 0;">
+        <button id="btnVolverMenuMaterias" class="volver-menu-btn">Volver al menú principal</button>
       </div>
     </section>
 

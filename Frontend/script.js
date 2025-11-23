@@ -22,6 +22,7 @@
     const seccionListado = document.getElementById('seccionListado');
     const seccionAlumnos = document.getElementById('seccionAlumnos');
     const seccionCrearMaestro = document.getElementById('seccionCrearMaestro');
+    const seccionGestionarMaterias = document.getElementById('seccionGestionarMaterias');
     const logoutBtn = document.getElementById('logoutBtn');
     const logoutBtnMaestro = document.getElementById('logoutBtnMaestro');
     const btnVolverMenuEscanear = document.getElementById('btnVolverMenuEscanear');
@@ -29,6 +30,8 @@
     const btnVolverMenuListado = document.getElementById('btnVolverMenuListado');
     const btnVolverMenuAlumnos = document.getElementById('btnVolverMenuAlumnos');
     const btnVolverMenuCrearMaestro = document.getElementById('btnVolverMenuCrearMaestro');
+    const btnVolverMenuMaterias = document.getElementById('btnVolverMenuMaterias');
+    const btnGestionarMaterias = document.getElementById('btnGestionarMaterias');
 
     // Función para ocultar todas las secciones
     const hideAllSections = () => {
@@ -39,6 +42,7 @@
       if (seccionListado) seccionListado.style.display = 'none';
       if (seccionAlumnos) seccionAlumnos.style.display = 'none';
       if (seccionCrearMaestro) seccionCrearMaestro.style.display = 'none';
+      if (seccionGestionarMaterias) seccionGestionarMaterias.style.display = 'none';
     };
 
     // Mostrar solo el menú principal al inicio
@@ -78,6 +82,14 @@
         hideAllSections();
         seccionCrearMaestro.style.display = '';
         loadTeachersList();
+      });
+    }
+    if (btnGestionarMaterias) {
+      btnGestionarMaterias.addEventListener('click', () => {
+        hideAllSections();
+        seccionGestionarMaterias.style.display = '';
+        loadSubjectsList();
+        loadTeachersForSubjects();
       });
     }
 
@@ -150,6 +162,9 @@
     if (btnVolverMenuCrearMaestro) {
       btnVolverMenuCrearMaestro.addEventListener('click', showMainMenu);
     }
+    if (btnVolverMenuMaterias) {
+      btnVolverMenuMaterias.addEventListener('click', showMainMenu);
+    }
   });
   // Configuración del backend
   const BACKEND_URL = 'http://localhost:3000';
@@ -178,6 +193,30 @@
   let currentUser = null;
   let authToken = null;
   window.currentUser = null;
+
+  // Función helper para obtener el token (siempre desde localStorage como fuente de verdad)
+  function getAuthToken() {
+    if (authToken) {
+      return authToken;
+    }
+    // Si no hay token en memoria, intentar recuperarlo de localStorage
+    const savedToken = localStorage.getItem('asistia_auth_token');
+    if (savedToken) {
+      authToken = savedToken;
+      return authToken;
+    }
+    return null;
+  }
+
+  // Función helper para establecer el token
+  function setAuthToken(token) {
+    authToken = token;
+    if (token) {
+      localStorage.setItem('asistia_auth_token', token);
+    } else {
+      localStorage.removeItem('asistia_auth_token');
+    }
+  }
 
   // Variables del QR scanner
   let streamingStream = null;     // MediaStream actual
@@ -359,7 +398,26 @@
 
   // Funciones de autenticación
   function checkAuthentication() {
-    // Siempre mostrar formulario de login al refrescar la página
+    // Verificar si hay sesión guardada
+    const savedToken = localStorage.getItem('asistia_auth_token');
+    const savedUser = localStorage.getItem('asistia_user');
+    
+    if (savedToken && savedUser) {
+      try {
+        setAuthToken(savedToken);
+        currentUser = JSON.parse(savedUser);
+        window.currentUser = currentUser;
+        isAuthenticated = true;
+        return true;
+      } catch (error) {
+        console.error('Error cargando sesión guardada:', error);
+        localStorage.removeItem('asistia_auth_token');
+        localStorage.removeItem('asistia_user');
+        authToken = null;
+        return false;
+      }
+    }
+    
     return false;
   }
 
@@ -369,6 +427,13 @@
     isAuthenticated = false;
     currentUser = null;
     authToken = null;
+  }
+
+  // Función auxiliar para verificar si el usuario es administrador
+  function isAdmin() {
+    if (!currentUser || !currentUser.role) return false;
+    const role = currentUser.role.toLowerCase();
+    return role === 'administrador' || role === 'admin';
   }
 
   function showMainApp() {
@@ -384,20 +449,24 @@
       document.getElementById('menuPrincipal').style.display = '';
       document.getElementById('menuMaestro').style.display = 'none';
 
-      // Para admin, mostrar solo botones de Crear Maestro y Alumnos
-      if (currentUser && currentUser.role === 'administrador') {
+      // Para admin, mostrar solo botones de Crear Maestro, Alumnos y Gestionar Materias
+      if (isAdmin()) {
         // Ocultar botones no necesarios para admin
         const btnIrEscanear = document.getElementById('btnIrEscanear');
         const btnIrGenerar = document.getElementById('btnIrGenerar');
         const btnIrLista = document.getElementById('btnIrLista');
         const btnCrearMaestro = document.getElementById('btnCrearMaestro');
         const btnIrAlumnos = document.getElementById('btnIrAlumnos');
+        const btnGestionarMaterias = document.getElementById('btnGestionarMaterias');
 
         if (btnIrEscanear) btnIrEscanear.style.display = 'none';
         if (btnIrGenerar) btnIrGenerar.style.display = 'none';
         if (btnIrLista) btnIrLista.style.display = 'none';
         if (btnCrearMaestro) btnCrearMaestro.style.display = 'block';
         if (btnIrAlumnos) btnIrAlumnos.style.display = 'block';
+        if (btnGestionarMaterias) {
+          btnGestionarMaterias.style.display = 'block';
+        }
       }
     }
   }
@@ -433,12 +502,17 @@
       
       if (data.ok) {
         // Login exitoso
-        authToken = data.data.token;
-        currentUser = data.data.user;
+        const token = data.data.token;
+        const user = data.data.user;
+        
+        // Establecer token usando la función helper
+        setAuthToken(token);
+        currentUser = user;
         window.currentUser = currentUser;
 
-        // Guardar en localStorage
-        localStorage.setItem('asistia_auth_token', authToken);
+        console.log('✅ Usuario autenticado:', currentUser.name, '- Rol:', currentUser.role);
+
+        // Guardar usuario en localStorage
         localStorage.setItem('asistia_user', JSON.stringify(currentUser));
 
         isAuthenticated = true;
@@ -463,11 +537,11 @@
     stopCamera();
     
     // Limpiar sesión
-    localStorage.removeItem('asistia_auth_token');
+    setAuthToken(null);
     localStorage.removeItem('asistia_user');
     isAuthenticated = false;
     currentUser = null;
-    authToken = null;
+    window.currentUser = null;
     
     // Mostrar formulario de login
     showLoginForm();
@@ -501,7 +575,8 @@
   async function registerAttendance(qrText) {
     try {
       const headers = { 'Content-Type': 'application/json' };
-      if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+      const token = getAuthToken();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const response = await fetch(`${BACKEND_URL}/api/asistencia`, {
         method: 'POST',
@@ -667,6 +742,8 @@
       // Mostrar formulario de login
       showLoginForm();
     } else {
+      // Mostrar aplicación si está autenticado
+      showMainApp();
       // Obtener estadísticas si está autenticado
       logStats();
     }
@@ -686,8 +763,9 @@
   async function loadAttendanceList() {
     try {
       const headers = {};
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
+      const token = getAuthToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       const response = await fetch(`${BACKEND_URL}/api/listado`, {
@@ -794,8 +872,9 @@
   async function exportToCSV() {
     try {
       const headers = {};
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
+      const token = getAuthToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       const response = await fetch(`${BACKEND_URL}/api/export/csv`, {
@@ -835,8 +914,9 @@
       const headers = {
         'Content-Type': 'application/json'
       };
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
+      const token = getAuthToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       const response = await fetch(`${BACKEND_URL}/api/student/${id}/status`, {
@@ -869,8 +949,9 @@
   async function loadStudentsList() {
     try {
       const headers = {};
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
+      const token = getAuthToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       const response = await fetch(`${BACKEND_URL}/api/alumnos`, {
@@ -900,8 +981,9 @@
   async function loadStudentsListGenerar() {
     try {
       const headers = {};
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
+      const token = getAuthToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       const response = await fetch(`${BACKEND_URL}/api/alumnos`, {
@@ -1127,8 +1209,9 @@
 
     try {
       const headers = {};
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
+      const token = getAuthToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       const response = await fetch(`${BACKEND_URL}/api/alumnos/${studentId}`, {
@@ -1158,16 +1241,16 @@
   // Funciones para gestión de maestros
   async function createTeacher(teacherData) {
     try {
-      
-      const headers = {
-        'Content-Type': 'application/json'
-      };
-      
-      if (!authToken) {
+      const token = getAuthToken();
+      if (!token) {
+        console.error('❌ No hay token disponible');
         throw new Error('No hay token de autenticación');
       }
       
-      headers['Authorization'] = `Bearer ${authToken}`;
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
 
       const response = await fetch(`${BACKEND_URL}/api/teachers/create`, {
         method: 'POST',
@@ -1175,14 +1258,15 @@
         body: JSON.stringify(teacherData)
       });
 
+      if (response.status === 401 || response.status === 403) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Error de autorización: ${errorData.mensaje || 'Token inválido o sin permisos'}`);
+      }
+
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          throw new Error(`Error de autorización: ${response.status}`);
-        }
-        
-        const errorText = await response.text();
-        console.error('❌ Error en respuesta:', errorText);
-        throw new Error(`Error HTTP: ${response.status} - ${errorText}`);
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.mensaje || `Error HTTP: ${response.status}`;
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -1195,18 +1279,31 @@
 
   async function loadTeachersList() {
     try {
-      const headers = {};
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
+      const token = getAuthToken();
+      if (!token) {
+        console.error('No hay token de autenticación');
+        return;
       }
+
+      const headers = {
+        'Authorization': `Bearer ${token}`
+      };
 
       const response = await fetch(`${BACKEND_URL}/api/teachers/list`, {
         method: 'GET',
         headers
       });
 
+      if (response.status === 401 || response.status === 403) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error de autorización:', errorData.mensaje || 'Token inválido');
+        // No mostrar alerta aquí para evitar múltiples mensajes
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.mensaje || `Error HTTP: ${response.status}`);
       }
 
       const data = await response.json();
@@ -1215,11 +1312,11 @@
         renderTeachersList(data.data);
       } else {
         console.error('Error obteniendo lista de maestros:', data.mensaje);
-        alert('Error al cargar la lista de maestros');
+        // No mostrar alerta, solo log
       }
     } catch (error) {
       console.error('Error cargando lista de maestros:', error);
-      alert('Error de conexión con el servidor');
+      // No mostrar alerta para evitar múltiples mensajes
     }
   }
 
@@ -1262,8 +1359,9 @@
 
     try {
       const headers = {};
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
+      const token = getAuthToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       const response = await fetch(`${BACKEND_URL}/api/teachers/${teacherId}`, {
@@ -1309,9 +1407,9 @@
   async function handleTeacherFormSubmit(event) {
     event.preventDefault();
     
-    
     // Verificar que hay token de autenticación
-    if (!authToken) {
+    const token = getAuthToken();
+    if (!token) {
       alert('Error: No hay sesión activa. Por favor, inicia sesión nuevamente.');
       handleLogout();
       return;
@@ -1344,11 +1442,12 @@
       }
     } catch (error) {
       console.error('❌ Error creando maestro:', error);
-      if (error.message.includes('401') || error.message.includes('403')) {
+      if (error.message && (error.message.includes('401') || error.message.includes('403') || error.message.includes('autorización'))) {
         alert('Error de autorización. Por favor, inicia sesión nuevamente.');
         handleLogout();
       } else {
-        alert('Error de conexión con el servidor');
+        const errorMessage = error.message || 'Error de conexión con el servidor';
+        alert(errorMessage);
       }
     }
   }
@@ -1463,8 +1562,9 @@
   async function createStudentWithPhoto(formData) {
     try {
       const headers = {};
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
+      const token = getAuthToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       // Crear FormData con los datos del formulario y la foto
@@ -1571,6 +1671,436 @@
         alert('Error de conexión con el servidor');
       }
     });
+  }
+
+  // ===== FUNCIONES PARA GESTIÓN DE MATERIAS =====
+  
+  // Días de la semana
+  const DAYS_OF_WEEK = [
+    { value: 0, label: 'Domingo' },
+    { value: 1, label: 'Lunes' },
+    { value: 2, label: 'Martes' },
+    { value: 3, label: 'Miércoles' },
+    { value: 4, label: 'Jueves' },
+    { value: 5, label: 'Viernes' },
+    { value: 6, label: 'Sábado' }
+  ];
+
+  // Cargar lista de maestros para el select
+  async function loadTeachersForSubjects() {
+    try {
+      const headers = {};
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      } else {
+        console.error('No hay token de autenticación');
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/teachers/list`, {
+        method: 'GET',
+        headers
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error de autorización:', errorData.mensaje || 'Token inválido');
+        return;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.mensaje || `Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.ok) {
+        const select = document.getElementById('materiaMaestro');
+        if (select) {
+          select.innerHTML = '<option value="">Selecciona un maestro</option>';
+          
+          data.data.forEach(teacher => {
+            const option = document.createElement('option');
+            option.value = teacher.id;
+            option.textContent = teacher.name;
+            select.appendChild(option);
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error cargando maestros:', error);
+      // No mostrar alerta para evitar múltiples mensajes
+    }
+  }
+
+  // Cargar lista de materias
+  async function loadSubjectsList() {
+    try {
+      const headers = {};
+      const token = getAuthToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      } else {
+        console.error('No hay token de autenticación');
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/subjects/list`, {
+        method: 'GET',
+        headers
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error de autorización:', errorData.mensaje || 'Token inválido');
+        // No mostrar alerta aquí, solo log
+        return;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.mensaje || `Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.ok) {
+        renderSubjectsList(data.data);
+      } else {
+        console.error('Error obteniendo lista de materias:', data.mensaje);
+        // No mostrar alerta, solo log
+      }
+    } catch (error) {
+      console.error('Error cargando lista de materias:', error);
+      // No mostrar alerta aquí para evitar múltiples mensajes
+    }
+  }
+
+  // Renderizar lista de materias
+  function renderSubjectsList(subjects) {
+    const subjectsList = document.getElementById('subjectsList');
+    subjectsList.innerHTML = '';
+
+    if (subjects.length === 0) {
+      subjectsList.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No hay materias registradas</p>';
+      return;
+    }
+
+    subjects.forEach(subject => {
+      const subjectCard = document.createElement('div');
+      subjectCard.className = 'subject-card';
+
+      const schedulesHtml = subject.schedules && subject.schedules.length > 0
+        ? subject.schedules.map(schedule => {
+            const day = DAYS_OF_WEEK.find(d => d.value === schedule.dayOfWeek);
+            return `<div class="schedule-item">${day ? day.label : 'N/A'} ${schedule.startTime} - ${schedule.endTime}${schedule.classroom ? ` (${schedule.classroom})` : ''}</div>`;
+          }).join('')
+        : '<div class="schedule-item">Sin horarios asignados</div>';
+
+      subjectCard.innerHTML = `
+        <div class="subject-card-header">
+          <h3>${subject.name}</h3>
+          ${subject.code ? `<span class="subject-code">${subject.code}</span>` : ''}
+        </div>
+        <div class="subject-card-body">
+          <div class="subject-info">
+            <p><strong>Maestro:</strong> ${subject.teacher.name}</p>
+            ${subject.description ? `<p><strong>Descripción:</strong> ${subject.description}</p>` : ''}
+          </div>
+          <div class="subject-schedules">
+            <strong>Horarios:</strong>
+            ${schedulesHtml}
+          </div>
+        </div>
+        <div class="subject-card-actions">
+          <button class="btn btn-small" onclick="editSubject('${subject.id}')">Editar</button>
+          <button class="btn btn-small btn-danger" onclick="deleteSubject('${subject.id}')">Eliminar</button>
+        </div>
+      `;
+
+      subjectsList.appendChild(subjectCard);
+    });
+  }
+
+  // Agregar horario al formulario
+  function addScheduleRow() {
+    const container = document.getElementById('horariosContainer');
+    const scheduleRow = document.createElement('div');
+    scheduleRow.className = 'schedule-row';
+    
+    scheduleRow.innerHTML = `
+      <select class="schedule-day" required>
+        <option value="">Día</option>
+        ${DAYS_OF_WEEK.map(day => `<option value="${day.value}">${day.label}</option>`).join('')}
+      </select>
+      <input type="time" class="schedule-start" required placeholder="Inicio">
+      <input type="time" class="schedule-end" required placeholder="Fin">
+      <input type="text" class="schedule-classroom" placeholder="Aula (opcional)">
+      <button type="button" class="btn-remove-schedule" onclick="removeScheduleRow(this)">×</button>
+    `;
+
+    container.appendChild(scheduleRow);
+  }
+
+  // Eliminar fila de horario
+  function removeScheduleRow(button) {
+    button.parentElement.remove();
+  }
+
+  // Crear o actualizar materia
+  async function saveSubject(event) {
+    event.preventDefault();
+
+    const token = getAuthToken();
+    if (!token) {
+      alert('Error de autenticación. Por favor, inicia sesión nuevamente.');
+      handleLogout();
+      return;
+    }
+
+    const form = event.target;
+    const formData = new FormData(form);
+    const subjectId = document.getElementById('materiaId').value;
+
+    // Recopilar horarios
+    const scheduleRows = document.querySelectorAll('.schedule-row');
+    const schedules = [];
+    
+    scheduleRows.forEach(row => {
+      const dayOfWeek = parseInt(row.querySelector('.schedule-day').value);
+      const startTime = row.querySelector('.schedule-start').value;
+      const endTime = row.querySelector('.schedule-end').value;
+      const classroom = row.querySelector('.schedule-classroom').value;
+
+      if (dayOfWeek !== undefined && startTime && endTime) {
+        schedules.push({
+          dayOfWeek,
+          startTime,
+          endTime,
+          classroom: classroom || null
+        });
+      }
+    });
+
+    const subjectData = {
+      name: formData.get('name'),
+      code: formData.get('code') || null,
+      description: formData.get('description') || null,
+      teacherId: formData.get('teacherId'),
+      schedules: schedules
+    };
+
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+
+      const url = subjectId 
+        ? `${BACKEND_URL}/api/subjects/${subjectId}`
+        : `${BACKEND_URL}/api/subjects/create`;
+      
+      const method = subjectId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers,
+        body: JSON.stringify(subjectData)
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        const errorData = await response.json().catch(() => ({}));
+        alert('Error de autorización. Por favor, inicia sesión nuevamente.');
+        handleLogout();
+        return;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.mensaje || `Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.ok) {
+        alert(subjectId ? 'Materia actualizada exitosamente' : 'Materia creada exitosamente');
+        form.reset();
+        document.getElementById('horariosContainer').innerHTML = '';
+        document.getElementById('materiaId').value = '';
+        document.getElementById('formTitle').textContent = 'Crear Nueva Materia';
+        document.getElementById('btnCancelarMateria').style.display = 'none';
+        loadSubjectsList();
+      } else {
+        alert(data.mensaje || 'Error al guardar la materia');
+      }
+    } catch (error) {
+      console.error('Error guardando materia:', error);
+      alert(error.message || 'Error de conexión con el servidor');
+    }
+  }
+
+  // Editar materia
+  async function editSubject(subjectId) {
+    const token = getAuthToken();
+    if (!token) {
+      alert('Error de autenticación. Por favor, inicia sesión nuevamente.');
+      handleLogout();
+      return;
+    }
+
+    try {
+      const headers = {
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await fetch(`${BACKEND_URL}/api/subjects/${subjectId}`, {
+        method: 'GET',
+        headers
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        const errorData = await response.json().catch(() => ({}));
+        alert('Error de autorización. Por favor, inicia sesión nuevamente.');
+        handleLogout();
+        return;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.mensaje || `Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.ok) {
+        const subject = data.data;
+        
+        // Llenar formulario
+        document.getElementById('materiaId').value = subject.id;
+        document.getElementById('materiaNombre').value = subject.name;
+        document.getElementById('materiaCodigo').value = subject.code || '';
+        document.getElementById('materiaDescripcion').value = subject.description || '';
+        document.getElementById('materiaMaestro').value = subject.teacherId;
+        
+        // Limpiar y agregar horarios
+        const container = document.getElementById('horariosContainer');
+        container.innerHTML = '';
+        
+        if (subject.schedules && subject.schedules.length > 0) {
+          subject.schedules.forEach(schedule => {
+            const scheduleRow = document.createElement('div');
+            scheduleRow.className = 'schedule-row';
+            
+            scheduleRow.innerHTML = `
+              <select class="schedule-day" required>
+                <option value="">Día</option>
+                ${DAYS_OF_WEEK.map(day => 
+                  `<option value="${day.value}" ${day.value === schedule.dayOfWeek ? 'selected' : ''}>${day.label}</option>`
+                ).join('')}
+              </select>
+              <input type="time" class="schedule-start" value="${schedule.startTime}" required>
+              <input type="time" class="schedule-end" value="${schedule.endTime}" required>
+              <input type="text" class="schedule-classroom" value="${schedule.classroom || ''}" placeholder="Aula (opcional)">
+              <button type="button" class="btn-remove-schedule" onclick="removeScheduleRow(this)">×</button>
+            `;
+            
+            container.appendChild(scheduleRow);
+          });
+        }
+
+        document.getElementById('formTitle').textContent = 'Editar Materia';
+        document.getElementById('btnCancelarMateria').style.display = 'block';
+        
+        // Scroll al formulario
+        const formContainer = document.querySelector('.subjects-form-container');
+        if (formContainer) {
+          formContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    } catch (error) {
+      console.error('Error cargando materia:', error);
+      alert(error.message || 'Error al cargar la materia');
+    }
+  }
+
+  // Eliminar materia
+  async function deleteSubject(subjectId) {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta materia? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    const token = getAuthToken();
+    if (!token) {
+      alert('Error de autenticación. Por favor, inicia sesión nuevamente.');
+      handleLogout();
+      return;
+    }
+
+    try {
+      const headers = {
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await fetch(`${BACKEND_URL}/api/subjects/${subjectId}`, {
+        method: 'DELETE',
+        headers
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        const errorData = await response.json().catch(() => ({}));
+        alert('Error de autorización. Por favor, inicia sesión nuevamente.');
+        handleLogout();
+        return;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.mensaje || `Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.ok) {
+        alert('Materia eliminada exitosamente');
+        loadSubjectsList();
+      } else {
+        alert(data.mensaje || 'Error al eliminar la materia');
+      }
+    } catch (error) {
+      console.error('Error eliminando materia:', error);
+      alert(error.message || 'Error de conexión con el servidor');
+    }
+  }
+
+  // Cancelar edición
+  function cancelEdit() {
+    document.getElementById('formMateria').reset();
+    document.getElementById('horariosContainer').innerHTML = '';
+    document.getElementById('materiaId').value = '';
+    document.getElementById('formTitle').textContent = 'Crear Nueva Materia';
+    document.getElementById('btnCancelarMateria').style.display = 'none';
+  }
+
+  // Hacer funciones globales
+  window.editSubject = editSubject;
+  window.deleteSubject = deleteSubject;
+  window.removeScheduleRow = removeScheduleRow;
+
+  // Event listeners para materias
+  const formMateria = document.getElementById('formMateria');
+  if (formMateria) {
+    formMateria.addEventListener('submit', saveSubject);
+  }
+
+  const btnAgregarHorario = document.getElementById('btnAgregarHorario');
+  if (btnAgregarHorario) {
+    btnAgregarHorario.addEventListener('click', addScheduleRow);
+  }
+
+  const btnCancelarMateria = document.getElementById('btnCancelarMateria');
+  if (btnCancelarMateria) {
+    btnCancelarMateria.addEventListener('click', cancelEdit);
   }
 
   // FIN del IIFE

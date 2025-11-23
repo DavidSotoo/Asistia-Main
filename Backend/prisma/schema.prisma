@@ -20,6 +20,9 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  // Relación con materias (maestro puede tener múltiples materias)
+  subjects Subject[]
+
   @@map("users")
 }
 
@@ -54,4 +57,36 @@ model Attendance {
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("attendance")
+}
+
+model Subject {
+  id          String    @id @default(uuid())
+  name        String
+  code        String?   @unique
+  description String?
+  teacherId   String    @map("teacher_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relaciones
+  teacher  User      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  schedules Schedule[]
+
+  @@map("subjects")
+}
+
+model Schedule {
+  id        String   @id @default(uuid())
+  subjectId String   @map("subject_id")
+  dayOfWeek Int      // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+  startTime String   // Formato HH:MM (ej: "08:00")
+  endTime   String   // Formato HH:MM (ej: "10:00")
+  classroom String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relación con materia
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@map("schedules")
 }

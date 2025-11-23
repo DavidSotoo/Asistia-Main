@@ -8,7 +8,18 @@ const { authenticateToken } = require('../middleware/auth');
 // Middleware para verificar que el usuario es admin o maestro
 const requireAdminOrTeacher = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    // Intentar obtener el token de diferentes formas
+    let token = req.headers.authorization;
+    if (token) {
+      token = token.replace('Bearer ', '').replace('bearer ', '').trim();
+    }
+    
+    // También intentar desde el header directo
+    if (!token && req.headers['authorization']) {
+      const authHeader = req.headers['authorization'];
+      token = authHeader.split(' ')[1];
+    }
+
     if (!token) {
       return res.status(401).json({
         ok: false,
@@ -17,8 +28,16 @@ const requireAdminOrTeacher = async (req, res, next) => {
     }
 
     const decoded = authService.verifyToken(token);
+    
+    // Verificación del rol - aceptar "admin" o "administrador"
+    const roleStr = String(decoded.role || '').trim();
+    const roleLower = roleStr.toLowerCase();
+    
+    // Aceptar "admin", "administrador" o "maestro"
+    const isAdmin = roleLower === 'admin' || roleLower === 'administrador';
+    const isTeacher = roleLower === 'maestro';
 
-    if (decoded.role !== 'administrador' && decoded.role !== 'maestro') {
+    if (!isAdmin && !isTeacher) {
       return res.status(403).json({
         ok: false,
         mensaje: "Acceso denegado. Se requiere rol de administrador o maestro"
@@ -28,9 +47,10 @@ const requireAdminOrTeacher = async (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
+    console.error('Error en requireAdminOrTeacher:', error.message);
     return res.status(401).json({
       ok: false,
-      mensaje: "Token inválido"
+      mensaje: error.message || "Token inválido"
     });
   }
 };
@@ -47,8 +67,11 @@ const requireAdmin = async (req, res, next) => {
     }
 
     const decoded = authService.verifyToken(token);
+    
+    // Aceptar tanto 'administrador' como 'admin'
+    const isAdmin = decoded.role === 'administrador' || decoded.role === 'admin';
 
-    if (decoded.role !== 'admin') {
+    if (!isAdmin) {
       return res.status(403).json({
         ok: false,
         mensaje: "Acceso denegado. Se requiere rol de administrador"
@@ -58,9 +81,10 @@ const requireAdmin = async (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
+    console.error('Error en requireAdmin middleware:', error);
     return res.status(401).json({
       ok: false,
-      mensaje: "Token inválido"
+      mensaje: error.message || "Token inválido"
     });
   }
 };
@@ -108,9 +132,10 @@ router.post('/create', requireAdminOrTeacher, async (req, res) => {
     });
   } catch (error) {
     console.error('Error creando maestro:', error);
+    const errorMessage = error.message || "Error interno del servidor";
     res.status(500).json({
       ok: false,
-      mensaje: error.message || "Error interno del servidor"
+      mensaje: errorMessage
     });
   }
 });
@@ -132,7 +157,7 @@ router.get('/list', requireAdminOrTeacher, async (req, res) => {
     console.error('Error obteniendo lista de maestros:', error);
     res.status(500).json({
       ok: false,
-      mensaje: "Error interno del servidor"
+      mensaje: error.message || "Error interno del servidor"
     });
   }
 });
