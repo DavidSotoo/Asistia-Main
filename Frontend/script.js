@@ -331,6 +331,50 @@
     ctx.stroke();
   }
 
+  // Función para mostrar un toast/notificación bonita
+  function showToast(title, message, isError = false) {
+    const toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${isError ? 'toast-error' : ''}`;
+
+    const icon = document.createElement('div');
+    icon.className = 'toast-icon';
+    icon.textContent = isError ? '✕' : '✓';
+
+    const content = document.createElement('div');
+    content.className = 'toast-content';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'toast-title';
+    titleEl.textContent = title;
+
+    const messageEl = document.createElement('div');
+    messageEl.className = 'toast-message';
+    messageEl.textContent = message;
+
+    content.appendChild(titleEl);
+    if (message) {
+      content.appendChild(messageEl);
+    }
+
+    toast.appendChild(icon);
+    toast.appendChild(content);
+
+    toastContainer.appendChild(toast);
+
+    // Remover el toast después de 3 segundos
+    setTimeout(() => {
+      toast.classList.add('toast-exit');
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 300);
+    }, 3000);
+  }
+
   // Lógica al decodificar un QR
   function handleDecoded(decodedText) {
     const now = Date.now();
@@ -374,6 +418,18 @@
             successSound.currentTime = 0; // Reiniciar el sonido si ya se estaba reproduciendo
             successSound.play().catch(err => console.warn('No se pudo reproducir el sonido:', err));
           }
+          
+          // Mostrar mensaje bonito de éxito
+          const alumno = response.alumno || {};
+          const nombreCompleto = `${alumno.nombre || qrData.nombre || 'Alumno'} ${alumno.apellido || qrData.apellido || ''}`.trim();
+          const estado = alumno.estado || 'Registrado';
+          const mensaje = response.mensaje || `Asistencia registrada: ${estado}`;
+          
+          showToast('✓ Escaneo exitoso', `${nombreCompleto} - ${mensaje}`);
+        } else {
+          // Mostrar mensaje de error si no fue exitoso
+          const mensajeError = response.mensaje || 'Error al registrar la asistencia';
+          showToast('✕ Error', mensajeError, true);
         }
         // Mostrar en UI
         showResult(qrData, response);
@@ -383,6 +439,7 @@
       .catch(err => {
         console.error('Error en petición al backend:', err);
         showResult(qrData, { ok: false, mensaje: 'Error de conexión con el servidor' });
+        showToast('✕ Error', 'Error de conexión con el servidor', true);
       });
   }
 
