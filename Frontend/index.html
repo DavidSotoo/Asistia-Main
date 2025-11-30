@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Control de Asistencia por QR</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- Librería QRCode.js para generar QR (CDN) - versión original que ya funcionaba -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <!-- jsQR (librería para decodificar QR desde ImageData) -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" defer></script>
   <script src="script.js" defer></script>
 </head>
 <body>
-  <!-- Librería QRCode.js para generar QR (CDN) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- Script para generar QR -->
     <script src="generarQR.js"></script>
     <!-- Audio element for success sound -->
@@ -153,13 +153,13 @@
         <div class="qr-form-card">
           <form id="formAlumno">
             <label for="nombre">Nombre</label>
-            <input type="text" id="nombre" required>
+            <input type="text" id="nombre" name="nombre" required>
             <label for="apellido">Apellido</label>
-            <input type="text" id="apellido" required>
+            <input type="text" id="apellido" name="apellido" required>
             <label for="matricula">Matrícula</label>
-            <input type="text" id="matricula" required>
+            <input type="text" id="matricula" name="matricula" required>
             <label for="grupo">Grupo</label>
-            <input type="text" id="grupo" required>
+            <input type="text" id="grupo" name="grupo" required>
 
             <!-- Sección de captura de foto -->
             <div class="photo-capture-section">

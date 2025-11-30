@@ -91,13 +91,14 @@ class AttendanceService {
         orderBy: { nombre: 'asc' }
       });
 
-      // Transformar datos incluyendo códigos QR
+      // Transformar datos incluyendo códigos QR y foto
       const alumnos = students.map(student => ({
         id: student.id,
         nombre: student.nombre,
         apellido: student.apellido,
         matricula: student.matricula,
         grupo: student.grupo,
+        photoUrl: student.photoUrl || null,
         qrCode: student.id // Usar el ID como código QR
       }));
 
@@ -117,6 +118,7 @@ class AttendanceService {
       nombre: student.nombre,
       apellido: student.apellido,
       estado: status,
+      photoUrl: student.photoUrl || null,
       lastUpdated: lastUpdated.toISOString()
     };
   }
@@ -295,9 +297,13 @@ class AttendanceService {
    */
   async createStudent(data) {
     try {
+      console.log('📝 Intentando crear estudiante con datos:', JSON.stringify(data, null, 2));
+      
       const student = await this.prisma.student.create({
         data
       });
+
+      console.log('✅ Estudiante creado exitosamente:', student.id);
 
       return {
         ok: true,
@@ -312,8 +318,29 @@ class AttendanceService {
         mensaje: "Estudiante creado exitosamente"
       };
     } catch (error) {
-      console.error('Error creando estudiante:', error);
-      throw new Error('Error interno al crear estudiante');
+      console.error('❌ Error creando estudiante:', error);
+      console.error('❌ Error stack:', error.stack);
+      console.error('❌ Error name:', error.name);
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error meta:', error.meta);
+      
+      // Proporcionar mensaje más descriptivo según el tipo de error
+      let errorMessage = 'Error interno al crear estudiante';
+      if (error.code === 'P2002') {
+        if (error.meta?.target?.includes('id')) {
+          errorMessage = 'Ya existe un estudiante con esta matrícula (ID duplicado)';
+        } else if (error.meta?.target?.includes('matricula')) {
+          errorMessage = 'Ya existe un estudiante con esta matrícula';
+        } else {
+          errorMessage = `Ya existe un estudiante con ${error.meta?.target?.join(', ') || 'este identificador'}`;
+        }
+      } else if (error.code === 'P2003') {
+        errorMessage = 'Error de referencia: un campo relacionado no existe';
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
+      throw new Error(errorMessage);
     }
   }
 

@@ -20,6 +20,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mensaje) {
       mensaje.textContent = "";
     }
+    
+    // Limpiar estado de la foto si existe
+    if (typeof stopPhotoCamera === 'function') {
+      stopPhotoCamera();
+    }
   }
 
   // Función para validar y restringir entrada en tiempo real
@@ -51,50 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
   validateInput(matriculaInput, /[^0-9]/g, "Solo se permiten números en la matrícula.");
   validateInput(grupoInput, /[^a-zA-Z0-9\s]/g, "Solo se permiten letras, números y espacios en el grupo.");
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const nombre = document.getElementById("nombre").value.trim();
-    const apellido = document.getElementById("apellido").value.trim();
-    const matricula = document.getElementById("matricula").value.trim();
-    const grupo = document.getElementById("grupo").value.trim();
-    const mensaje = document.getElementById("mensaje");
-
-    // Validación frontend
-    if (!nombre || !apellido || !matricula || !grupo) {
-      mensaje.textContent = "⚠️ Todos los campos son obligatorios.";
-      mensaje.style.color = "red";
-      return;
-    }
-
-    try {
-      const respuesta = await fetch("http://localhost:3000/generarQR", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre, apellido, matricula, grupo })
-      });
-
-      const data = await respuesta.json();
-
-      if (respuesta.ok) {
-        document.getElementById("qrImagen").src = data.qr;
-        document.getElementById("qrImagen").hidden = false;
-        document.getElementById("descargarQR").href = data.qr;
-        document.getElementById("descargarQR").hidden = false;
-        generarNuevoQRBtn.hidden = false;
-
-        mensaje.textContent = "✅ QR generado con éxito.";
-        mensaje.style.color = "green";
-      } else {
-        mensaje.textContent = `❌ Error: ${data.error}`;
-        mensaje.style.color = "red";
-      }
-    } catch (error) {
-      console.error(error);
-      mensaje.textContent = "❌ Error de conexión con el servidor.";
-      mensaje.style.color = "red";
-    }
-  });
+  // NOTA: El event listener del submit se maneja en script.js
+  // Este archivo solo maneja validaciones de input y el botón de resetear
+  // Se eliminó el event listener del submit para evitar conflictos con script.js
+  // que maneja la creación de estudiantes con foto a través de /api/alumnos/create
 
   // Event listener para el botón "Generar Nuevo QR"
   if (generarNuevoQRBtn) {

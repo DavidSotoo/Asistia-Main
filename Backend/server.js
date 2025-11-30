@@ -16,6 +16,7 @@ const authRoutes = require('./routes/auth');
 const teachersRoutes = require('./routes/teachers');
 const uploadRoutes = require('./routes/upload');
 const subjectsRoutes = require('./routes/subjects');
+const studentsRoutes = require('./routes/students');
 
 // QRCode para generar QR
 const QRCode = require('qrcode');
@@ -125,11 +126,55 @@ app.post('/generarQR', async (req, res) => {
 });
 
 // Rutas de la API
-app.use('/api', attendanceRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/teachers', teachersRoutes);
-app.use('/api/upload', uploadRoutes);
-app.use('/api/subjects', subjectsRoutes);
+// IMPORTANTE: Registrar studentsRoutes ANTES de attendanceRoutes para evitar conflictos
+// ya que attendanceRoutes también tiene rutas /alumnos
+try {
+  console.log('📋 Registrando rutas de estudiantes...');
+  app.use('/api/alumnos', studentsRoutes);
+  console.log('✅ Rutas de estudiantes registradas correctamente');
+} catch (error) {
+  console.error('❌ Error registrando rutas de estudiantes:', error);
+}
+
+try {
+  console.log('📋 Registrando rutas de attendance...');
+  app.use('/api', attendanceRoutes);
+  console.log('✅ Rutas de attendance registradas correctamente');
+} catch (error) {
+  console.error('❌ Error registrando rutas de attendance:', error);
+}
+
+try {
+  console.log('📋 Registrando rutas de autenticación...');
+  app.use('/api/auth', authRoutes);
+  console.log('✅ Rutas de autenticación registradas correctamente');
+} catch (error) {
+  console.error('❌ Error registrando rutas de autenticación:', error);
+}
+
+try {
+  console.log('📋 Registrando rutas de maestros...');
+  app.use('/api/teachers', teachersRoutes);
+  console.log('✅ Rutas de maestros registradas correctamente');
+} catch (error) {
+  console.error('❌ Error registrando rutas de maestros:', error);
+}
+
+try {
+  console.log('📋 Registrando rutas de upload...');
+  app.use('/api/upload', uploadRoutes);
+  console.log('✅ Rutas de upload registradas correctamente');
+} catch (error) {
+  console.error('❌ Error registrando rutas de upload:', error);
+}
+
+try {
+  console.log('📋 Registrando rutas de materias...');
+  app.use('/api/subjects', subjectsRoutes);
+  console.log('✅ Rutas de materias registradas correctamente');
+} catch (error) {
+  console.error('❌ Error registrando rutas de materias:', error);
+}
 
 // Middleware de manejo de errores
 app.use(notFound);

@@ -227,7 +227,7 @@
   // Variables para captura de foto
   let photoStream = null;         // MediaStream para foto
   let capturedPhotoBlob = null;   // Blob de la foto capturada
-  const photoCtx = photoCanvas.getContext('2d');
+  let photoCtx = null;            // Contexto del canvas (inicializado después de DOM)
 
   // Previene re-escaneos rápidos: guardamos { id: timestamp }
   const recentlyScanned = new Map();
@@ -607,10 +607,33 @@
     if (alumno.photoUrl) {
       const photoContainer = document.createElement('div');
       photoContainer.className = 'result-photo-container';
+      photoContainer.style.textAlign = 'center';
+      photoContainer.style.marginBottom = '16px';
+      
       const photoImg = document.createElement('img');
       photoImg.className = 'result-photo';
-      photoImg.src = `${BACKEND_URL}${alumno.photoUrl}`;
-      photoImg.alt = `Foto de ${alumno.nombre} ${alumno.apellido}`;
+      photoImg.style.width = '120px';
+      photoImg.style.height = '120px';
+      photoImg.style.objectFit = 'cover';
+      photoImg.style.borderRadius = '12px';
+      photoImg.style.border = '3px solid var(--accent)';
+      photoImg.style.boxShadow = '0 4px 12px rgba(14, 165, 164, 0.3)';
+      
+      // Si la URL ya es completa (Cloudinary), usarla directamente
+      // Si es una ruta relativa (local), agregar el prefijo del backend
+      const photoUrl = alumno.photoUrl.startsWith('http://') || alumno.photoUrl.startsWith('https://')
+        ? alumno.photoUrl
+        : `${BACKEND_URL}${alumno.photoUrl}`;
+      
+      photoImg.src = photoUrl;
+      photoImg.alt = `Foto de ${alumno.nombre || ''} ${alumno.apellido || ''}`;
+      
+      // Manejar errores de carga de imagen
+      photoImg.onerror = function() {
+        console.warn('No se pudo cargar la imagen:', photoUrl);
+        photoContainer.style.display = 'none';
+      };
+      
       photoContainer.appendChild(photoImg);
       resultCard.appendChild(photoContainer);
     }
@@ -1051,7 +1074,11 @@
 
       if (alumno.photoUrl) {
         console.log('📸 Alumno tiene photoUrl:', alumno.photoUrl);
-        const fullPhotoUrl = `${BACKEND_URL}${alumno.photoUrl}`;
+        // Si la URL ya es completa (Cloudinary), usarla directamente
+        // Si es una ruta relativa (local), agregar el prefijo del backend
+        const fullPhotoUrl = alumno.photoUrl.startsWith('http://') || alumno.photoUrl.startsWith('https://')
+          ? alumno.photoUrl
+          : `${BACKEND_URL}${alumno.photoUrl}`;
         console.log('🔗 URL completa de la foto:', fullPhotoUrl);
 
         const photoImg = document.createElement('img');
@@ -1155,7 +1182,11 @@
         photoContainer.className = 'student-photo-container';
         const photoImg = document.createElement('img');
         photoImg.className = 'student-photo';
-        photoImg.src = `${BACKEND_URL}${alumno.photoUrl}`;
+        // Si la URL ya es completa (Cloudinary), usarla directamente
+        // Si es una ruta relativa (local), agregar el prefijo del backend
+        photoImg.src = alumno.photoUrl.startsWith('http://') || alumno.photoUrl.startsWith('https://')
+          ? alumno.photoUrl
+          : `${BACKEND_URL}${alumno.photoUrl}`;
         photoImg.alt = `Foto de ${alumno.nombre} ${alumno.apellido}`;
         photoContainer.appendChild(photoImg);
         card.appendChild(photoContainer);
@@ -1476,6 +1507,21 @@
       return;
     }
 
+    // Detener stream anterior si existe
+    if (photoStream) {
+      photoStream.getTracks().forEach(track => track.stop());
+      photoStream = null;
+    }
+
+    // Limpiar foto anterior si existe
+    if (capturedPhotoBlob) {
+      const capturedPhoto = document.getElementById('capturedPhoto');
+      if (capturedPhoto && capturedPhoto.src && capturedPhoto.src.startsWith('blob:')) {
+        URL.revokeObjectURL(capturedPhoto.src);
+      }
+      capturedPhotoBlob = null;
+    }
+
     const constraints = {
       audio: false,
       video: {
@@ -1488,22 +1534,35 @@
     try {
       photoStream = await navigator.mediaDevices.getUserMedia(constraints);
       const photoVideo = document.getElementById('photoVideo');
+      if (!photoVideo) {
+        throw new Error('Elemento de video no encontrado');
+      }
+      
       photoVideo.srcObject = photoStream;
       await photoVideo.play();
 
+      // Asegurar que el video sea visible
+      photoVideo.style.display = '';
+      
       document.getElementById('startPhotoCamera').disabled = true;
       document.getElementById('capturePhoto').disabled = false;
       document.getElementById('retakePhoto').style.display = 'none';
       document.getElementById('photoPreview').style.display = 'none';
     } catch (err) {
       console.error('Error al acceder a la cámara para foto:', err);
-      alert('No se pudo acceder a la cámara para tomar foto.');
+      let errorMessage = 'No se pudo acceder a la cámara para tomar foto.';
+      if (err.name === 'NotAllowedError') {
+        errorMessage = 'Permiso de cámara denegado. Por favor, permite el acceso a la cámara en la configuración del navegador.';
+      } else if (err.name === 'NotFoundError') {
+        errorMessage = 'No se encontró ninguna cámara. Por favor, verifica que haya una cámara conectada.';
+      }
+      alert(errorMessage);
     }
   }
 
   function stopPhotoCamera() {
     if (photoStream) {
-      photoStream.getTracks().forEach(t => t.stop());
+      photoStream.getTracks().forEach(track => track.stop());
       photoStream = null;
     }
     const photoVideo = document.getElementById('photoVideo');
@@ -1511,10 +1570,26 @@
       photoVideo.pause();
       photoVideo.srcObject = null;
     }
-    document.getElementById('startPhotoCamera').disabled = false;
-    document.getElementById('capturePhoto').disabled = true;
-    document.getElementById('retakePhoto').style.display = 'none';
-    document.getElementById('photoPreview').style.display = 'none';
+    
+    // Limpiar foto capturada
+    if (capturedPhotoBlob) {
+      const capturedPhoto = document.getElementById('capturedPhoto');
+      if (capturedPhoto && capturedPhoto.src && capturedPhoto.src.startsWith('blob:')) {
+        URL.revokeObjectURL(capturedPhoto.src);
+      }
+      capturedPhotoBlob = null;
+    }
+    
+    const startBtn = document.getElementById('startPhotoCamera');
+    const captureBtn = document.getElementById('capturePhoto');
+    const retakeBtn = document.getElementById('retakePhoto');
+    const preview = document.getElementById('photoPreview');
+    
+    if (startBtn) startBtn.disabled = false;
+    if (captureBtn) captureBtn.disabled = true;
+    if (retakeBtn) retakeBtn.style.display = 'none';
+    if (preview) preview.style.display = 'none';
+    if (photoVideo) photoVideo.style.display = '';
   }
 
   function capturePhoto() {
@@ -1522,7 +1597,21 @@
     const photoCanvas = document.getElementById('photoCanvas');
     const capturedPhoto = document.getElementById('capturedPhoto');
 
-    if (!photoVideo || !photoCanvas) return;
+    if (!photoVideo || !photoCanvas) {
+      console.error('Elementos de cámara no encontrados');
+      return;
+    }
+
+    // Verificar que el video esté listo
+    if (photoVideo.readyState !== photoVideo.HAVE_ENOUGH_DATA) {
+      alert('El video aún no está listo. Por favor, espera un momento.');
+      return;
+    }
+
+    // Inicializar contexto del canvas si no existe
+    if (!photoCtx) {
+      photoCtx = photoCanvas.getContext('2d');
+    }
 
     // Ajustar canvas al tamaño del video
     photoCanvas.width = photoVideo.videoWidth;
@@ -1533,6 +1622,11 @@
 
     // Convertir a blob
     photoCanvas.toBlob(blob => {
+      if (!blob) {
+        alert('Error al capturar la foto. Por favor, intenta de nuevo.');
+        return;
+      }
+      
       capturedPhotoBlob = blob;
       capturedPhoto.src = URL.createObjectURL(blob);
 
@@ -1545,14 +1639,21 @@
   }
 
   function retakePhoto() {
+    const capturedPhoto = document.getElementById('capturedPhoto');
+    const photoVideo = document.getElementById('photoVideo');
+    
     // Limpiar blob anterior
-    if (capturedPhotoBlob) {
-      URL.revokeObjectURL(capturedPhoto.src);
+    if (capturedPhotoBlob && capturedPhoto) {
+      if (capturedPhoto.src && capturedPhoto.src.startsWith('blob:')) {
+        URL.revokeObjectURL(capturedPhoto.src);
+      }
       capturedPhotoBlob = null;
     }
 
     // Mostrar video y ocultar preview
-    document.getElementById('photoVideo').style.display = '';
+    if (photoVideo) {
+      photoVideo.style.display = '';
+    }
     document.getElementById('photoPreview').style.display = 'none';
     document.getElementById('capturePhoto').disabled = false;
     document.getElementById('retakePhoto').style.display = 'none';
@@ -1561,10 +1662,9 @@
   // Función para crear alumno con foto
   async function createStudentWithPhoto(formData) {
     try {
-      const headers = {};
       const token = getAuthToken();
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      if (!token) {
+        throw new Error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
       }
 
       // Crear FormData con los datos del formulario y la foto
@@ -1576,19 +1676,52 @@
       submitData.append('matricula', formData.get('matricula'));
       submitData.append('grupo', formData.get('grupo'));
 
+      // Agregar campos opcionales si existen
+      const email = formData.get('email');
+      const telefono = formData.get('telefono');
+      if (email) {
+        submitData.append('email', email);
+      }
+      if (telefono) {
+        submitData.append('telefono', telefono);
+      }
+
       // Agregar foto si existe
       if (capturedPhotoBlob) {
         submitData.append('photo', capturedPhotoBlob, `photo_${Date.now()}.jpg`);
+        console.log('✅ Foto agregada al formulario, tamaño:', capturedPhotoBlob.size, 'bytes');
+      } else {
+        console.log('⚠️ No hay foto para enviar');
       }
 
       const response = await fetch(`${BACKEND_URL}/api/alumnos/create`, {
         method: 'POST',
-        headers,
+        headers: {
+          'Authorization': `Bearer ${token}`
+          // NO incluir Content-Type: FormData lo establece automáticamente con el boundary
+        },
         body: submitData
       });
 
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('Error de autorización. Por favor, inicia sesión nuevamente.');
+      }
+
       if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
+        // Intentar obtener el mensaje de error del servidor
+        let errorMessage = `Error HTTP: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.mensaje || errorMessage;
+        } catch (parseError) {
+          // Si no se puede parsear el JSON, usar el mensaje genérico según el código de estado
+          if (response.status === 400) {
+            errorMessage = 'Error de validación en los datos enviados';
+          } else if (response.status >= 500) {
+            errorMessage = 'Error interno del servidor. Por favor, intenta más tarde.';
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -1627,6 +1760,20 @@
         return;
       }
 
+      // Validar que se haya capturado una foto
+      if (!capturedPhotoBlob) {
+        const confirmar = confirm('No se ha capturado ninguna foto. ¿Deseas continuar sin foto?');
+        if (!confirmar) {
+          return;
+        }
+      }
+
+      // Deshabilitar el botón de envío para evitar doble envío
+      const submitBtn = formAlumno.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creando...';
+
       try {
         const response = await createStudentWithPhoto(formData);
 
@@ -1634,41 +1781,123 @@
           alert('Alumno creado exitosamente');
           formAlumno.reset();
           stopPhotoCamera();
+          
+          // Limpiar la foto capturada
+          capturedPhotoBlob = null;
+          const photoPreview = document.getElementById('photoPreview');
+          if (photoPreview) {
+            photoPreview.style.display = 'none';
+          }
+          const photoVideo = document.getElementById('photoVideo');
+          if (photoVideo) {
+            photoVideo.style.display = '';
+          }
 
           // Generar QR directamente en el frontend
+          // Nota: Solo incluimos datos básicos, NO photoUrl (las URLs son muy largas)
           const alumno = response.alumno;
           const qrData = JSON.stringify({
             id: alumno.id,
             nombre: alumno.nombre,
             apellido: alumno.apellido,
             matricula: alumno.matricula,
-            grupo: alumno.grupo,
-            photoUrl: alumno.photoUrl
+            grupo: alumno.grupo
+            // No incluimos photoUrl porque hace el QR demasiado grande
+            // La foto se puede obtener del servidor usando el ID/matrícula
           });
 
-          QRCode.toDataURL(qrData, (err, url) => {
-            if (err) {
-              console.error('Error generando QR:', err);
-              document.getElementById('mensaje').textContent = '❌ Error generando QR.';
-              document.getElementById('mensaje').style.color = 'red';
-              return;
-            }
+          // Verificar que QRCode esté disponible
+          if (typeof QRCode === 'undefined') {
+            console.error('❌ QRCode library no está cargada');
+            document.getElementById('mensaje').textContent = '❌ Error: Librería QRCode no disponible.';
+            document.getElementById('mensaje').style.color = 'red';
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            return;
+          }
 
-            document.getElementById('qrImagen').src = url;
-            document.getElementById('qrImagen').hidden = false;
-            document.getElementById('descargarQR').href = url;
-            document.getElementById('descargarQR').hidden = false;
-            document.getElementById('generarNuevoQR').hidden = false;
+          // Generar QR usando qrcodejs (solo almacenamos la foto, el QR se genera dinámicamente)
+          try {
+            // Crear un contenedor temporal para generar el QR con qrcodejs
+            const qrContainer = document.createElement('div');
+            qrContainer.style.position = 'absolute';
+            qrContainer.style.left = '-9999px';
+            qrContainer.style.width = '300px';
+            qrContainer.style.height = '300px';
+            document.body.appendChild(qrContainer);
 
-            document.getElementById('mensaje').textContent = '✅ QR generado con éxito.';
-            document.getElementById('mensaje').style.color = 'green';
-          });
+            // Limpiar cualquier contenido anterior
+            qrContainer.innerHTML = '';
+
+            // Generar QR usando qrcodejs (el constructor crea el QR en el elemento)
+            new QRCode(qrContainer, {
+              text: qrData,
+              width: 300,
+              height: 300,
+              colorDark: '#000000',
+              colorLight: '#FFFFFF',
+              correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // Esperar un momento para que el QR se genere
+            setTimeout(() => {
+              // Obtener el canvas generado por qrcodejs
+              const canvas = qrContainer.querySelector('canvas');
+              if (canvas) {
+                // Convertir canvas a data URL para mostrar y descargar
+                const qrDataUrl = canvas.toDataURL('image/png');
+                
+                document.getElementById('qrImagen').src = qrDataUrl;
+                document.getElementById('qrImagen').hidden = false;
+                document.getElementById('descargarQR').href = qrDataUrl;
+                document.getElementById('descargarQR').hidden = false;
+                document.getElementById('generarNuevoQR').hidden = false;
+
+                document.getElementById('mensaje').textContent = '✅ QR generado con éxito.';
+                document.getElementById('mensaje').style.color = 'green';
+              } else {
+                throw new Error('No se pudo generar el canvas del QR');
+              }
+
+              // Limpiar el contenedor temporal
+              document.body.removeChild(qrContainer);
+              
+              submitBtn.disabled = false;
+              submitBtn.textContent = originalText;
+            }, 100);
+          } catch (error) {
+            console.error('Error generando QR:', error);
+            document.getElementById('mensaje').textContent = '❌ Error generando QR: ' + (error.message || 'Error desconocido');
+            document.getElementById('mensaje').style.color = 'red';
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+          }
         } else {
           alert(response.mensaje || 'Error al crear el alumno');
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('Error de conexión con el servidor');
+        
+        // Mostrar el mensaje de error del servidor si existe
+        // Los errores 400 (validación) tienen mensajes descriptivos del servidor
+        // Los errores de conexión mostrarán el mensaje genérico
+        let errorMessage = error.message || 'Error desconocido';
+        
+        // Si el mensaje no parece ser un error de conexión, mostrarlo directamente
+        if (!errorMessage.includes('Failed to fetch') && 
+            !errorMessage.includes('NetworkError') && 
+            !errorMessage.includes('Network request failed')) {
+          // Es un error del servidor con mensaje descriptivo
+          alert(errorMessage);
+        } else {
+          // Es un error de conexión real
+          alert('Error de conexión con el servidor. Por favor, verifica tu conexión a internet.');
+        }
+        
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
       }
     });
   }
