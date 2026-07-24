@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -48,7 +48,7 @@ model Attendance {
   id             String   @id @default(uuid())
   studentId      String   @map("student_id")
   status         String   @default("Ausente")
-  attendanceDate DateTime @default(now()) @map("attendance_date") @db.Date
+  attendanceDate DateTime @default(now()) @map("attendance_date")
   attendanceTime DateTime @default(now()) @map("attendance_time")
   notes          String?
   createdAt      DateTime @default(now()) @map("created_at")

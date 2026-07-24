@@ -3,8 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Control de Asistencia por QR</title>
+  <title>Asistia — Panel de Administración</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="dashboard.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" />
   <!-- Librería QRCode.js para generar QR (CDN) - versión original que ya funcionaba -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <!-- jsQR (librería para decodificar QR desde ImageData) -->
@@ -73,34 +75,257 @@
     </div>
   </div>
 
-  <!-- Main App (hidden until login) -->
-  <main class="container" id="mainApp" style="display: none;">
-    <!-- Pantalla de menú principal -->
-    <section id="menuPrincipal" class="menu-principal">
-      <h1 class="menu-title">¿Qué deseas hacer?</h1>
-      <div class="menu-btns">
-        <button id="btnIrEscanear" class="menu-btn-grande">Escanear QR</button>
-        <button id="btnIrGenerar" class="menu-btn-grande">Generar QR</button>
-        <button id="btnIrLista" class="menu-btn-grande">Lista</button>
-        <button id="btnIrAlumnos" class="menu-btn-grande">Alumnos</button>
-        <!-- Botón para crear maestros (solo visible para admin) -->
-        <button id="btnCrearMaestro" class="menu-btn-grande admin-only" style="display:none;">Crear Maestro</button>
-        <!-- Botón para gestionar materias (solo visible para admin) -->
-        <button id="btnGestionarMaterias" class="menu-btn-grande admin-only" style="display:none;">Gestionar Materias</button>
-      </div>
-      <button id="logoutBtn" class="logout-btn" title="Cerrar sesión" style="margin-top:40px;">Cerrar Sesión</button>
-    </section>
+  <!-- Main App Dashboard Shell (hidden until login) -->
+  <div id="mainApp" style="display: none;">
+  <div id="dashboardApp">
 
-    <!-- Menú específico para maestros -->
-    <section id="menuMaestro" class="menu-principal" style="display:none;">
-      <h1 class="menu-title">Panel del Maestro</h1>
-      <div class="menu-btns">
-        <button id="btnMaestroEscanear" class="menu-btn-grande">Escanear QR</button>
-        <button id="btnMaestroGenerar" class="menu-btn-grande">Generar QR</button>
-        <button id="btnMaestroLista" class="menu-btn-grande">Ver Asistencias</button>
-        <button id="btnMaestroAlumnos" class="menu-btn-grande">Alumnos</button>
+    <!-- ── Sidebar ───────────────────────────────────── -->
+    <aside class="ds-sidebar" id="dsSidebar">
+      <div class="ds-sidebar-brand">
+        <div class="ds-brand-icon">
+          <span class="material-symbols-outlined icon-fill">school</span>
+        </div>
+        <div>
+          <div class="ds-brand-name">Asistia</div>
+          <div class="ds-brand-sub">Admin Portal</div>
+        </div>
       </div>
-      <button id="logoutBtnMaestro" class="logout-btn" title="Cerrar sesión" style="margin-top:40px;">Cerrar Sesión</button>
+
+      <nav class="ds-nav">
+        <!-- Admin nav -->
+        <div class="ds-nav-section admin-only" id="navSectionAdmin" style="display:none;">Admin</div>
+        <button class="ds-nav-item active" id="navDashboard" data-section="seccionDashboard">
+          <span class="material-symbols-outlined icon-fill">dashboard</span>
+          Dashboard
+        </button>
+        <button class="ds-nav-item" id="navAlumnos" data-section="seccionAlumnos">
+          <span class="material-symbols-outlined">school</span>
+          Alumnos
+        </button>
+        <button class="ds-nav-item admin-only" id="navMaestros" data-section="seccionCrearMaestro" style="display:none;">
+          <span class="material-symbols-outlined">group</span>
+          Maestros
+        </button>
+        <button class="ds-nav-item admin-only" id="navMaterias" data-section="seccionGestionarMaterias" style="display:none;">
+          <span class="material-symbols-outlined">book</span>
+          Materias
+        </button>
+
+        <!-- All roles -->
+        <div class="ds-nav-section" style="margin-top:8px;">Herramientas</div>
+        <button class="ds-nav-item" id="navEscanear" data-section="seccionEscanear">
+          <span class="material-symbols-outlined">qr_code_scanner</span>
+          Escanear QR
+        </button>
+        <button class="ds-nav-item" id="navGenerar" data-section="seccionGenerar">
+          <span class="material-symbols-outlined">qr_code</span>
+          Generar QR
+        </button>
+        <button class="ds-nav-item" id="navAsistencias" data-section="seccionListado">
+          <span class="material-symbols-outlined">event_available</span>
+          Asistencias
+        </button>
+      </nav>
+
+      <div class="ds-sidebar-footer">
+        <button class="ds-nav-item" id="logoutBtn" style="color: var(--ds-red); border-left-color:transparent;">
+          <span class="material-symbols-outlined">logout</span>
+          Cerrar Sesión
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── Top Bar ────────────────────────────────────── -->
+    <header class="ds-topbar" id="dsTopbar">
+      <div class="ds-topbar-left">
+        <div class="ds-topbar-title" id="dsPageTitle">Dashboard</div>
+      </div>
+      <div class="ds-topbar-right">
+        <div class="ds-avatar" id="dsAvatarInitials">AD</div>
+        <span class="ds-topbar-username" id="dsTopbarUsername">Admin</span>
+        <button class="ds-logout-btn" id="logoutBtnTop">Salir</button>
+      </div>
+    </header>
+
+    <!-- ── Main Content ───────────────────────────────── -->
+    <main class="ds-main">
+      <div class="ds-content-area">
+
+        <!-- ══ DASHBOARD SECTION ══════════════════════════ -->
+        <section id="seccionDashboard" class="ds-fade-in">
+          <!-- Page Header -->
+          <div class="ds-page-header" style="margin-bottom:24px;">
+            <div>
+              <h1 class="ds-page-title">Panel de Administración</h1>
+              <p class="ds-page-subtitle" id="dashWelcome">Bienvenido de nuevo</p>
+            </div>
+            <div class="ds-page-actions">
+              <div class="ds-date-badge" id="dashDate">
+                <span class="material-symbols-outlined">calendar_today</span>
+                <span id="dashDateText">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stat Cards (4) -->
+          <div class="ds-stats-grid" style="margin-bottom:28px;">
+            <!-- Total Alumnos -->
+            <div class="ds-stat-card">
+              <div class="ds-stat-info">
+                <span class="ds-stat-label">Total Alumnos</span>
+                <span class="ds-stat-value loading" id="statTotalAlumnos">—</span>
+                <span class="ds-stat-trend positive" id="statAlumnosTrend">
+                  <span class="material-symbols-outlined">school</span>
+                  Registrados
+                </span>
+              </div>
+              <div class="ds-stat-icon">
+                <span class="material-symbols-outlined">school</span>
+              </div>
+            </div>
+            <!-- Maestros -->
+            <div class="ds-stat-card admin-only" id="statCardMaestros" style="display:none;">
+              <div class="ds-stat-info">
+                <span class="ds-stat-label">Maestros</span>
+                <span class="ds-stat-value loading" id="statTotalMaestros">—</span>
+                <span class="ds-stat-trend neutral">
+                  <span class="material-symbols-outlined">sync</span>
+                  Activos
+                </span>
+              </div>
+              <div class="ds-stat-icon">
+                <span class="material-symbols-outlined">group</span>
+              </div>
+            </div>
+            <!-- Materias -->
+            <div class="ds-stat-card admin-only" id="statCardMaterias" style="display:none;">
+              <div class="ds-stat-info">
+                <span class="ds-stat-label">Materias</span>
+                <span class="ds-stat-value loading" id="statTotalMaterias">—</span>
+                <span class="ds-stat-trend positive" id="statMateriasTrend">
+                  <span class="material-symbols-outlined">book</span>
+                  Registradas
+                </span>
+              </div>
+              <div class="ds-stat-icon">
+                <span class="material-symbols-outlined">book</span>
+              </div>
+            </div>
+            <!-- Asistencia Hoy % -->
+            <div class="ds-stat-card">
+              <div class="ds-stat-info">
+                <span class="ds-stat-label">Asistencia Hoy</span>
+                <span class="ds-stat-value loading" id="statAsistenciaHoy">—</span>
+                <span class="ds-stat-trend positive" id="statAsistenciaTrend">
+                  <span class="material-symbols-outlined">trending_up</span>
+                  <span id="statAsistenciaDetail">Presentes hoy</span>
+                </span>
+              </div>
+              <div class="ds-stat-icon">
+                <span class="material-symbols-outlined">event_available</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Cards -->
+          <div style="margin-bottom:20px;">
+            <div class="ds-section-header" style="margin-bottom:16px;">
+              <h2 class="ds-section-title">Acciones Principales</h2>
+            </div>
+            <div class="ds-actions-grid" id="dashActionsGrid">
+              <!-- Escanear QR (all roles) -->
+              <div class="ds-action-card scanner-card" data-nav="seccionEscanear">
+                <div class="ds-action-icon">
+                  <span class="material-symbols-outlined">qr_code_scanner</span>
+                </div>
+                <h3 class="ds-action-title">Escanear QR</h3>
+                <p class="ds-action-desc">Registra la asistencia de alumnos leyendo su código QR en tiempo real con la cámara.</p>
+                <div class="ds-action-cta">Abrir Scanner <span class="material-symbols-outlined">arrow_forward</span></div>
+              </div>
+              <!-- Alumnos -->
+              <div class="ds-action-card" data-nav="seccionAlumnos">
+                <div class="ds-action-icon">
+                  <span class="material-symbols-outlined">group</span>
+                </div>
+                <h3 class="ds-action-title">Alumnos</h3>
+                <p class="ds-action-desc">Gestiona inscripciones, genera códigos QR y administra los perfiles de los estudiantes.</p>
+                <div class="ds-action-cta">Ver Alumnos <span class="material-symbols-outlined">arrow_forward</span></div>
+              </div>
+              <!-- Crear Maestro (admin only) -->
+              <div class="ds-action-card admin-only" id="actionCrearMaestro" data-nav="seccionCrearMaestro" style="display:none;">
+                <div class="ds-action-icon">
+                  <span class="material-symbols-outlined">person_add</span>
+                </div>
+                <h3 class="ds-action-title">Crear Maestro</h3>
+                <p class="ds-action-desc">Registra nuevos docentes y asigna credenciales de acceso seguras al portal.</p>
+                <div class="ds-action-cta">Configurar <span class="material-symbols-outlined">arrow_forward</span></div>
+              </div>
+              <!-- Materias (admin only) -->
+              <div class="ds-action-card admin-only" id="actionMaterias" data-nav="seccionGestionarMaterias" style="display:none;">
+                <div class="ds-action-icon">
+                  <span class="material-symbols-outlined">auto_stories</span>
+                </div>
+                <h3 class="ds-action-title">Gestionar Materias</h3>
+                <p class="ds-action-desc">Administra el catálogo de asignaturas, asigna maestros y organiza horarios.</p>
+                <div class="ds-action-cta">Administrar <span class="material-symbols-outlined">arrow_forward</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Grid: Recent Activity + Status -->
+          <div class="ds-bottom-grid">
+            <!-- Recent Students Table -->
+            <div class="ds-table-card">
+              <div class="ds-table-header">
+                <h3 class="ds-table-title">Alumnos Registrados Recientemente</h3>
+                <button class="ds-table-icon-btn" onclick="dsNavigate('seccionAlumnos')">
+                  <span class="material-symbols-outlined">open_in_new</span>
+                </button>
+              </div>
+              <div style="overflow-x:auto;">
+                <table class="ds-table">
+                  <thead>
+                    <tr>
+                      <th>Alumno</th>
+                      <th>Grupo</th>
+                      <th>Matrícula</th>
+                      <th>Estado Hoy</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashRecentStudents">
+                    <tr><td colspan="4" class="ds-table-empty">Cargando datos...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="ds-table-footer">
+                <button class="ds-table-footer-btn" onclick="dsNavigate('seccionAlumnos')">Ver todos los alumnos</button>
+              </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="ds-status-card">
+              <div class="ds-status-banner">
+                <span class="material-symbols-outlined icon-fill">shield_check</span>
+              </div>
+              <div>
+                <h4 class="ds-status-title">Estado del Sistema</h4>
+                <p class="ds-status-desc">Todos los módulos operando con normalidad. Base de datos SQLite activa.</p>
+              </div>
+              <div class="ds-status-indicator">
+                <span class="ds-pulse-dot"></span>
+                Sistema Online
+              </div>
+            </div>
+          </div>
+        </section>
+        <!-- ══ END DASHBOARD SECTION ══════════════════════ -->
+
+    <!-- Menú maestro: hidden, navegación ahora en sidebar -->
+    <section id="menuMaestro" style="display:none;"></section>
+    <!-- Menú principal: hidden, reemplazado por sidebar -->
+    <section id="menuPrincipal" style="display:none;">
+      <button id="btnCrearMaestro" style="display:none;"></button>
+      <button id="btnGestionarMaterias" style="display:none;"></button>
     </section>
 
     <!-- Sección Escanear QR (inicialmente oculta) -->
@@ -365,6 +590,9 @@
       </div>
     </section>
 
-  </main>
+      </div><!-- ds-content-area -->
+    </main><!-- ds-main -->
+  </div><!-- dashboardApp -->
+  </div><!-- mainApp -->
 </body>
 </html>

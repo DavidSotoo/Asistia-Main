@@ -33,7 +33,7 @@
     const btnVolverMenuMaterias = document.getElementById('btnVolverMenuMaterias');
     const btnGestionarMaterias = document.getElementById('btnGestionarMaterias');
 
-    // Función para ocultar todas las secciones
+    // Función para ocultar todas las secciones (compatibilidad)
     const hideAllSections = () => {
       if (menuPrincipal) menuPrincipal.style.display = 'none';
       if (menuMaestro) menuMaestro.style.display = 'none';
@@ -45,127 +45,40 @@
       if (seccionGestionarMaterias) seccionGestionarMaterias.style.display = 'none';
     };
 
-    // Mostrar solo el menú principal al inicio
-    if (menuPrincipal && seccionEscanear && seccionGenerar && seccionListado && seccionAlumnos) {
-      hideAllSections();
-      menuPrincipal.style.display = '';
-    }
+    // ── Sidebar: conectar todos los nav items ───────────────
+    document.querySelectorAll('.ds-nav-item[data-section]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const section = btn.dataset.section;
+        if (section && window.dsNavigate) window.dsNavigate(section);
+      });
+    });
 
-    if (btnIrEscanear) {
-      btnIrEscanear.addEventListener('click', () => {
-        hideAllSections();
-        seccionEscanear.style.display = '';
+    // Action cards del dashboard
+    document.querySelectorAll('.ds-action-card[data-nav]').forEach(card => {
+      card.addEventListener('click', () => {
+        const section = card.dataset.nav;
+        if (section && window.dsNavigate) window.dsNavigate(section);
       });
-    }
-    if (btnIrGenerar) {
-      btnIrGenerar.addEventListener('click', () => {
-        hideAllSections();
-        seccionGenerar.style.display = '';
-      });
-    }
-    if (btnIrLista) {
-      btnIrLista.addEventListener('click', () => {
-        hideAllSections();
-        seccionListado.style.display = '';
-        loadAttendanceList();
-      });
-    }
-    if (btnIrAlumnos) {
-      btnIrAlumnos.addEventListener('click', () => {
-        hideAllSections();
-        seccionAlumnos.style.display = '';
-        loadStudentsList();
-      });
-    }
-    if (btnCrearMaestro) {
-      btnCrearMaestro.addEventListener('click', () => {
-        hideAllSections();
-        seccionCrearMaestro.style.display = '';
-        loadTeachersList();
-      });
-    }
-    if (btnGestionarMaterias) {
-      btnGestionarMaterias.addEventListener('click', () => {
-        hideAllSections();
-        seccionGestionarMaterias.style.display = '';
-        loadSubjectsList();
-        loadTeachersForSubjects();
-      });
-    }
+    });
 
-    // Mostrar botón de crear maestro para maestros también
-    if (currentUser && (currentUser.role === 'administrador' || currentUser.role === 'maestro')) {
-      if (btnCrearMaestro) {
-        btnCrearMaestro.style.display = '';
-      }
-    }
-    if (btnMaestroEscanear) {
-      btnMaestroEscanear.addEventListener('click', () => {
-        hideAllSections();
-        seccionEscanear.style.display = '';
-        // Marcar que estamos en modo maestro para controlar la navegación
-        window.isTeacherMode = true;
-      });
-    }
-    if (btnMaestroGenerar) {
-      btnMaestroGenerar.addEventListener('click', () => {
-        hideAllSections();
-        seccionGenerar.style.display = '';
-      });
-    }
-    if (btnMaestroLista) {
-      btnMaestroLista.addEventListener('click', () => {
-        hideAllSections();
-        seccionListado.style.display = '';
-        loadAttendanceList();
-      });
-    }
-    if (btnMaestroAlumnos) {
-      btnMaestroAlumnos.addEventListener('click', () => {
-        hideAllSections();
-        seccionAlumnos.style.display = '';
-        loadStudentsList();
-      });
-    }
+    // Botones "volver" — navegan al dashboard
+    const backBtns = [
+      'btnVolverMenuEscanear', 'btnVolverMenuGenerar',
+      'btnVolverMenuListado', 'btnVolverMenuAlumnos',
+      'btnVolverMenuCrearMaestro', 'btnVolverMenuMaterias'
+    ];
+    backBtns.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('click', () => window.dsNavigate && window.dsNavigate('seccionDashboard'));
+    });
 
-    // Botón cerrar sesión: regresa al menú principal
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', handleLogout);
-    }
-    if (logoutBtnMaestro) {
-      logoutBtnMaestro.addEventListener('click', handleLogout);
-    }
-
-    // Función para mostrar el menú principal según el rol del usuario
-    const showMainMenu = () => {
-      hideAllSections();
-      if (currentUser && currentUser.role === 'maestro') {
-        menuMaestro.style.display = '';
-      } else {
-        menuPrincipal.style.display = '';
-      }
-    };
-
-    // Botones para volver al menú principal desde cada sección
-    if (btnVolverMenuEscanear) {
-      btnVolverMenuEscanear.addEventListener('click', showMainMenu);
-    }
-    if (btnVolverMenuGenerar) {
-      btnVolverMenuGenerar.addEventListener('click', showMainMenu);
-    }
-    if (btnVolverMenuListado) {
-      btnVolverMenuListado.addEventListener('click', showMainMenu);
-    }
-    if (btnVolverMenuAlumnos) {
-      btnVolverMenuAlumnos.addEventListener('click', showMainMenu);
-    }
-    if (btnVolverMenuCrearMaestro) {
-      btnVolverMenuCrearMaestro.addEventListener('click', showMainMenu);
-    }
-    if (btnVolverMenuMaterias) {
-      btnVolverMenuMaterias.addEventListener('click', showMainMenu);
-    }
+    // Logout — todos los botones
+    ['logoutBtn', 'logoutBtnTop', 'logoutBtnMaestro'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('click', handleLogout);
+    });
   });
+
   // Configuración del backend
   const BACKEND_URL = 'http://localhost:3000';
   
@@ -495,38 +408,38 @@
 
   function showMainApp() {
     loginContainer.style.display = 'none';
-    mainApp.style.display = 'grid';
+    mainApp.style.display = 'block';
     isAuthenticated = true;
 
-    // Mostrar el menú correcto según el rol del usuario
-    if (currentUser && currentUser.role === 'maestro') {
-      document.getElementById('menuMaestro').style.display = '';
-      document.getElementById('menuPrincipal').style.display = 'none';
-    } else {
-      document.getElementById('menuPrincipal').style.display = '';
-      document.getElementById('menuMaestro').style.display = 'none';
+    // Actualizar topbar con info del usuario
+    const nameStr = (currentUser && currentUser.name) || (currentUser && currentUser.username) || 'Usuario';
+    const initials = nameStr.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    const avatarEl = document.getElementById('dsAvatarInitials');
+    const usernameEl = document.getElementById('dsTopbarUsername');
+    const welcomeEl = document.getElementById('dashWelcome');
+    if (avatarEl) avatarEl.textContent = initials;
+    if (usernameEl) usernameEl.textContent = nameStr;
+    if (welcomeEl) welcomeEl.textContent = `Bienvenido de nuevo, ${nameStr}`;
 
-      // Para admin, mostrar solo botones de Crear Maestro, Alumnos y Gestionar Materias
-      if (isAdmin()) {
-        // Ocultar botones no necesarios para admin
-        const btnIrEscanear = document.getElementById('btnIrEscanear');
-        const btnIrGenerar = document.getElementById('btnIrGenerar');
-        const btnIrLista = document.getElementById('btnIrLista');
-        const btnCrearMaestro = document.getElementById('btnCrearMaestro');
-        const btnIrAlumnos = document.getElementById('btnIrAlumnos');
-        const btnGestionarMaterias = document.getElementById('btnGestionarMaterias');
-
-        if (btnIrEscanear) btnIrEscanear.style.display = 'none';
-        if (btnIrGenerar) btnIrGenerar.style.display = 'none';
-        if (btnIrLista) btnIrLista.style.display = 'none';
-        if (btnCrearMaestro) btnCrearMaestro.style.display = 'block';
-        if (btnIrAlumnos) btnIrAlumnos.style.display = 'block';
-        if (btnGestionarMaterias) {
-          btnGestionarMaterias.style.display = 'block';
-        }
-      }
+    // Fecha actual en topbar
+    const dateEl = document.getElementById('dashDateText');
+    if (dateEl) {
+      dateEl.textContent = new Date().toLocaleDateString('es-MX', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      });
     }
+
+    // Mostrar/ocultar elementos admin-only
+    const adminEls = document.querySelectorAll('.admin-only');
+    adminEls.forEach(el => {
+      el.style.display = isAdmin() ? '' : 'none';
+    });
+
+    // Navegar al dashboard como pantalla inicial
+    dsNavigate('seccionDashboard');
+    loadDashboard();
   }
+
 
   async function handleLogin(event) {
     event.preventDefault();
@@ -603,6 +516,165 @@
     // Mostrar formulario de login
     showLoginForm();
   }
+
+  // ══════════════════════════════════════════════════════════
+  //  DASHBOARD — Navegación y carga de datos
+  // ══════════════════════════════════════════════════════════
+
+  const ALL_SECTIONS = [
+    'seccionDashboard', 'seccionEscanear', 'seccionGenerar',
+    'seccionListado', 'seccionAlumnos', 'seccionCrearMaestro',
+    'seccionGestionarMaterias', 'menuPrincipal', 'menuMaestro'
+  ];
+
+  const SECTION_TITLES = {
+    seccionDashboard: 'Dashboard',
+    seccionEscanear: 'Escanear QR',
+    seccionGenerar: 'Generar QR',
+    seccionListado: 'Asistencias Hoy',
+    seccionAlumnos: 'Alumnos',
+    seccionCrearMaestro: 'Maestros',
+    seccionGestionarMaterias: 'Materias'
+  };
+
+  // Exponer globalmente para que el HTML inline pueda llamarla
+  window.dsNavigate = function dsNavigate(sectionId) {
+    // Ocultar todas las secciones de contenido
+    ALL_SECTIONS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+
+    // Mostrar la sección solicitada
+    const target = document.getElementById(sectionId);
+    if (target) {
+      target.style.display = '';
+      target.classList.remove('ds-fade-in');
+      void target.offsetWidth; // reflow
+      target.classList.add('ds-fade-in');
+    }
+
+    // Actualizar título del topbar
+    const pageTitle = document.getElementById('dsPageTitle');
+    if (pageTitle) pageTitle.textContent = SECTION_TITLES[sectionId] || 'Asistia';
+
+    // Actualizar estado activo del sidebar
+    document.querySelectorAll('.ds-nav-item[data-section]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.section === sectionId);
+    });
+
+    // Cargar datos de la sección si es necesario
+    if (sectionId === 'seccionDashboard') loadDashboard();
+    if (sectionId === 'seccionListado') loadAttendanceList();
+    if (sectionId === 'seccionAlumnos') loadStudentsList();
+    if (sectionId === 'seccionCrearMaestro') loadTeachersList();
+    if (sectionId === 'seccionGestionarMaterias') { loadSubjectsList(); loadTeachersForSubjects(); }
+  };
+
+  // ── Carga de datos del dashboard ──────────────────────────
+  async function loadDashboard() {
+    try {
+      // Cargar stats de asistencia + alumnos totales
+      const [statsRes, alumnosRes] = await Promise.all([
+        fetch(`${BACKEND_URL}/api/stats`),
+        fetch(`${BACKEND_URL}/api/alumnos/list`)
+      ]);
+
+      // Stats de asistencia
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        if (statsData.ok && statsData.stats) {
+          const s = statsData.stats;
+          // Total alumnos
+          const elTotal = document.getElementById('statTotalAlumnos');
+          if (elTotal) { elTotal.textContent = s.total; elTotal.classList.remove('loading'); }
+          // Asistencia hoy %
+          const elAsis = document.getElementById('statAsistenciaHoy');
+          const elAsisTrend = document.getElementById('statAsistenciaDetail');
+          if (elAsis) {
+            elAsis.textContent = `${s.attendanceRate}%`;
+            elAsis.classList.remove('loading');
+          }
+          if (elAsisTrend) elAsisTrend.textContent = `${s.presente} presente${s.presente !== 1 ? 's' : ''} hoy`;
+        }
+      }
+
+      // Alumnos recientes (últimos 5)
+      if (alumnosRes.ok) {
+        const alumnosData = await alumnosRes.json();
+        if (alumnosData.ok && alumnosData.alumnos) {
+          renderRecentStudents(alumnosData.alumnos.slice(-5).reverse());
+        }
+      }
+
+      // Si es admin: cargar maestros y materias
+      if (isAdmin()) {
+        loadDashboardAdminStats();
+      }
+
+    } catch (err) {
+      console.warn('Error cargando dashboard stats:', err);
+      // Mostrar 0 en caso de error de red
+      ['statTotalAlumnos','statTotalMaestros','statTotalMaterias','statAsistenciaHoy'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.textContent = '0'; el.classList.remove('loading'); }
+      });
+      renderRecentStudents([]);
+    }
+  }
+
+  async function loadDashboardAdminStats() {
+    try {
+      const token = getAuthToken();
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+      const [teachersRes, subjectsRes] = await Promise.all([
+        fetch(`${BACKEND_URL}/api/teachers/list`, { headers }),
+        fetch(`${BACKEND_URL}/api/subjects/list`, { headers })
+      ]);
+
+      if (teachersRes.ok) {
+        const tData = await teachersRes.json();
+        const elT = document.getElementById('statTotalMaestros');
+        if (elT && tData.ok) { elT.textContent = (tData.data || []).length; elT.classList.remove('loading'); }
+      }
+      if (subjectsRes.ok) {
+        const sData = await subjectsRes.json();
+        const elS = document.getElementById('statTotalMaterias');
+        if (elS && sData.ok) { elS.textContent = (sData.data || []).length; elS.classList.remove('loading'); }
+      }
+    } catch (err) {
+      console.warn('Error cargando stats admin:', err);
+    }
+  }
+
+  function renderRecentStudents(alumnos) {
+    const tbody = document.getElementById('dashRecentStudents');
+    if (!tbody) return;
+    if (!alumnos || alumnos.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="ds-table-empty">No hay alumnos registrados aún.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = alumnos.map(a => {
+      const initials = `${(a.nombre||'')[0]||'?'}${(a.apellido||'')[0]||''}`.toUpperCase();
+      const nombre = `${a.nombre||''} ${a.apellido||''}`.trim();
+      const grupo = a.grupo || '—';
+      const matricula = a.id || a.matricula || '—';
+      // Estado de hoy (del campo estado si existe, o '-')
+      const estado = a.estado || null;
+      const chipHtml = estado
+        ? `<span class="ds-chip ${estado === 'Presente' ? 'present' : estado === 'Tarde' ? 'late' : 'absent'}">${estado}</span>`
+        : `<span class="ds-chip enrolled">Inscrito</span>`;
+      return `
+        <tr>
+          <td><div class="student-cell"><div class="ds-mini-avatar">${initials}</div><span class="student-name">${nombre}</span></div></td>
+          <td>${grupo}</td>
+          <td style="font-family:monospace;font-size:12px;">${matricula}</td>
+          <td>${chipHtml}</td>
+        </tr>`;
+    }).join('');
+  }
+
 
   function showLoginError(message) {
     loginError.textContent = message;
